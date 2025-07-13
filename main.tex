@@ -1,0 +1,339 @@
+\documentclass{article}
+
+\usepackage{arxiv}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{doi}
+
+\title{Telemetry as Memory: Using Observability Pipelines to Train Adaptive AI Systems}
+
+\author{
+  Ecem Karaman \\
+  Adaptive Systems Lab (Independent Researcher) \\
+  New York, NY \\
+  \texttt{ecemkaraman.research@gmail.com}
+}
+
+\hypersetup{
+  pdftitle={Telemetry as Memory: Using Observability Pipelines to Train Adaptive AI Systems},
+  pdfsubject={cs.LG, cs.AI},
+  pdfauthor={Ecem Karaman},
+  pdfkeywords={Telemetry, Observability, Meta-learning, MLOps, Security AI}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Traditional MLOps pipelines are limited by their static assumptions and reliance on offline training. In contrast, this paper explores how observability pipelines—built from logs, metrics, and traces—can serve as adaptive memory systems to train AI agents in real-time. By integrating streaming telemetry with meta-learning principles, we propose an architecture for systems that self-tune based on real-world feedback. This paper presents the motivation, system design, security implications, and evaluation strategies for such telemetry-driven AI. We highlight the limitations of current approaches and propose a novel path toward resilient, learning-aware infrastructure.
+\end{abstract}
+
+\keywords{Telemetry \and Observability \and Meta-learning \and MLOps \and Adaptive AI}
+
+\section{Introduction}
+
+\subsection{Problem}
+Modern AI systems increasingly operate in dynamic, high-stakes environments such as cloud infrastructure, cybersecurity, and DevOps. Yet the majority of deployed models remain static post-training—updated only via periodic offline retraining on lagging datasets. MLOps pipelines typically treat training and inference as disjoint phases, while observability systems (e.g., logs, metrics, traces) function in parallel as passive diagnostics. This disconnect results in brittle systems that lack contextual awareness, are slow to adapt, and degrade under distributional shift or operational drift.
+
+\subsection{Motivation}
+We propose a shift in paradigm: treating observability pipelines as live, adaptive memory channels for AI agents. By transforming high-volume telemetry into structured learning signals, we enable continuous model adaptation through online and meta-learning techniques. This converts passive observability into an active learning substrate—closing the loop between system behavior, model feedback, and autonomous optimization.
+
+However, embedding learning directly into production telemetry loops introduces significant risks. Adaptive systems that update in real time are vulnerable to data poisoning, drift manipulation, and unsafe feedback cycles. These challenges demand a security-first architectural design, robust trust calibration, and strong governance for model updates.
+
+\subsection{Novelty Framing}
+Prior work on adaptive systems tends to focus on isolated components—such as anomaly detection, online learning, or observability tooling. In contrast, our work bridges these domains, proposing an end-to-end system that unifies telemetry ingestion, learning, and decision-making into a secure, closed feedback loop. We believe this integration is critical for building resilient, context-aware AI systems in production.
+
+\subsection{Contributions}
+This paper presents the following key contributions:
+\begin{itemize}
+    \item \textbf{Framework:} Introduce the \textit{Telemetry as Memory} paradigm, repurposing observability data as dynamic memory for adaptive learning.
+    \item \textbf{Architecture:} Design a modular, streaming-based pipeline that integrates telemetry ingestion, featurization, trust scoring, and model updates.
+    \item \textbf{Learning:} Apply online, meta-, and reinforcement learning to support robust, context-sensitive model adaptation.
+    \item \textbf{Security Model:} Propose a novel threat model for adaptive feedback systems, addressing poisoning, drift attacks, and adversarial feedback.
+    \item \textbf{Analysis:} Examine trade-offs in deployment, including latency, auditability, and safety under concept drift.
+\end{itemize}
+
+Our goal is to move beyond \textit{monitor and alert} toward systems that \textit{observe, learn, and act}—safely, continuously, and autonomously.
+
+
+\section{Background}
+
+\subsection{Operational Observability}
+Modern cloud-native systems rely heavily on observability pipelines—spanning logs, metrics, and distributed traces—to monitor system behavior, detect anomalies, and support debugging. Tools such as Prometheus, Grafana, Elastic Stack, and OpenTelemetry \cite{opentelemetry2025} have standardized telemetry collection and visualization. Yet the use of this data remains largely manual, rule-based, or human-in-the-loop, rather than fueling automated intelligence.
+
+\subsection{Limitations of Traditional MLOps}
+Current MLOps workflows focus on training models offline using static, curated datasets.\cite{zaharia2018mlflow, sculley2015debt}  While these pipelines may monitor performance post-deployment, they typically decouple drift detection from retraining. This introduces high-latency adaptation, where insights from production telemetry rarely translate into timely model improvements—especially in high-change environments like security and infrastructure.
+
+\subsection{Foundations of Continual Learning}
+\textbf{Online Learning:} Enables incremental model updates with each new data point, supporting low-latency adaptation to streaming inputs. \\
+
+\textbf{Meta-Learning:} Equips models to rapidly adapt using limited new data by learning adaptation strategies themselves. Techniques such as MAML and Reptile provide strong baselines for learning-to-learn systems. \cite{finnie2021metalearning} \\
+
+Despite their promise, these methods are rarely integrated into production-grade AI pipelines, particularly in operational or safety-critical domains.
+
+\subsection{Emerging Research at the Intersection}
+While isolated efforts have explored the use of observability data for anomaly detection (e.g., Facebook Prophet, Netflix Atlas), log representation learning (e.g., DeepLog, LogAnomaly), or embedding telemetry into supervised pipelines, few systems attempt end-to-end, secure, real-time adaptation driven directly by production telemetry.
+
+\subsection{Key Concepts}
+\begin{itemize}
+    \item \textbf{Observability Pipelines:} Systems for ingesting and analyzing structured/unstructured telemetry (logs, metrics, traces) to monitor and debug applications
+    \item \textbf{Online Learning:} Algorithms that continuously update models in response to new streaming data
+    \item \textbf{Meta-Learning:} Methods that optimize for fast future adaptation, rather than static performance, using limited feedback
+    \item \textbf{Adversarial Learning Context:} Recognizing that learning from live telemetry introduces risks—poisoning, feedback manipulation, and trust calibration
+\end{itemize}
+
+\subsection{Gap Analysis}
+Existing production systems treat telemetry as static diagnostics—not as dynamic, structured input for adaptive learning. The convergence of observability, continuous learning, and secure feedback mechanisms remains underexplored, particularly in agentic or mission-critical contexts. This paper addresses that gap by proposing a unified architecture where telemetry functions as memory: live, trusted, and actionable.
+
+
+\section{Methodology and System Design}
+
+We propose a modular, streaming architecture to transform observability data into adaptive memory for AI agents. The system is designed for cloud-native environments and emphasizes real-time learning, trust scoring, and safe inference under operational uncertainty.
+
+\subsection{Core Components} 
+
+\textbf{Ingestion Layer:}
+\begin{itemize}
+    \item Collects logs, metrics, and traces using observability agents such as OpenTelemetry
+    \item Transports telemetry into the pipeline via a message queue (e.g., Kafka, Event Hub) 
+\end{itemize}
+
+\textbf{Processing Layer:}
+\begin{itemize}
+    \item Applies preprocessing and filtering to reduce telemetry noise
+    \item Featurizes inputs into embeddings, statistical summaries, or time-windowed signals
+    \item Implements telemetry trust scoring to prioritize reliable, high-signal events
+\end{itemize}
+
+\textbf{Learning Layer:}
+\begin{itemize}
+    \item Consumes trusted telemetry to support online, meta-, or reinforcement learning-based model updates
+    \item A model update engine determines how and when to adapt model parameters
+\end{itemize}
+
+\textbf{Inference and Action Layer:}
+\begin{itemize}
+    \item Routes processed state to an adaptive AI agent
+    \item The agent interacts with a decision/action interface, which executes policy-driven outputs in production
+\end{itemize}
+
+\textbf{Security and Governance Layer:}
+\begin{itemize}
+    \item A policy engine and sandboxing environment restrict unsafe actions
+    \item Audit logs, confidence scores, and explainability dashboards ensure human oversight and traceability
+\end{itemize}
+
+\subsection{Novel Contributions}
+\begin{itemize}
+    \item \textbf{Telemetry Trust Scoring:} Quantifies reliability of inputs to filter untrustworthy signals or poisoned data
+    \item \textbf{Security-Aware Adaptation:} Introduces policy constraints and observability checkpoints into the learning loop \cite{oltramari2020cognitive, trustoncloud2023}
+    \item \textbf{Model Transparency Hooks:} Exposes internal adaptation events and confidence metrics via explainability tools
+\end{itemize}
+
+\subsection{System Diagram}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/system_architecture.png}
+    \caption{Proposed telemetry-to-memory architecture for adaptive AI agents.}
+    \label{fig:architecture}
+\end{figure}
+
+
+\section{Threat Model}
+
+\subsection{Adversary Capabilities \& Objectives} \cite{carlini2017poisoning, trustoncloud2023, oltramari2020cognitive}
+We consider adversaries who can observe, inject, or manipulate telemetry streams (logs, metrics, traces) used by the adaptive learning system. Their goals include:
+\begin{itemize}
+    \item \textbf{Poisoning Attacks}: Injecting misleading data to corrupt model behavior \cite{carlini2017poisoning}
+    \item \textbf{Behavioral Steering}: Exploiting system feedback loops to gradually shift model policies
+    \item \textbf{Drift Induction}: Causing unbounded model updates that degrade stability or security
+\end{itemize}
+
+\subsection{System Trust Boundary}
+We assume a distributed system where telemetry is ingested from agents deployed across cloud workloads. The trusted computing base (TCB) includes agents, queues, and model update subsystems. Inputs from outside this base may be adversarial.
+
+\subsection{Attack Vectors}
+\begin{table}[h]
+\centering
+\caption{Representative Attack Vectors}
+\begin{tabular}{|p{3cm}|p{3cm}|p{3cm}|p{5cm}|}
+\hline
+\textbf{Vector} & \textbf{Method} & \textbf{Goal} & \textbf{Example} \\
+\hline
+Telemetry Injection & Synthetic log/metric creation & Poison updates & Adversary mimics service failure logs to trigger model corrections \\
+\hline
+Metric Spoofing & Alter system-level stats & Skew embeddings & Inflated CPU metrics mask resource abuse \\
+\hline
+Feedback Exploitation & Trigger repetitive edge patterns & Reinforce misbehavior & Bot repeatedly invokes edge-case API to push model drift \\
+\hline
+Unauthorized Logging & Exploit agent misconfig & Break data integrity & Inject logs without authentication via rogue containers \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Mitigation Strategies}
+\begin{table}[h]
+\centering
+\caption{Security Mitigations}
+\begin{tabular}{|p{3cm}|p{4cm}|p{6cm}|}
+\hline
+\textbf{Technique} & \textbf{Defense Goal} & \textbf{Mechanism} \\
+\hline
+Telemetry Validation & Integrity & Agent authentication, schema enforcement, anomaly filters at ingestion \\
+\hline
+Trust Scoring & Selective update weighting & Compute reliability scores per telemetry source or type \\
+\hline
+Drift Monitors & Stability \& rollback & Alert on confidence drops, unseen patterns, or over-updates \\
+\hline
+Human Oversight & Governance & Approval gates for model changes exceeding impact thresholds \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Security Design Goals}
+\begin{itemize}
+    \item \textbf{Integrity}: Ensure telemetry originates from authenticated, verifiable sources.
+    \item \textbf{Resilience}: Detect and mitigate drift before operational impact.
+    \item \textbf{Auditability}: Retain logs of model updates, trust scores, and telemetry paths.
+    \item \textbf{Explainability}: Attribute model behavior to specific telemetry segments.
+\end{itemize}
+
+\section{Evaluation / Experiments (Proposed)}
+
+\subsection{Goals}
+Our evaluation aims to validate the core hypothesis: telemetry-aware AI systems can learn continuously, remain robust under adversarial conditions, and outperform conventional retraining in production.
+
+\subsection{Key Objectives}
+\begin{itemize}
+    \item \textbf{Adaptivity}: Measure model responsiveness to new telemetry patterns
+    \item \textbf{Robustness}: Test against adversarial or poisoned telemetry
+    \item \textbf{Responsiveness}: Compare recovery latency vs. traditional retraining
+\end{itemize}
+
+\subsection{Experimental Setup}
+\begin{table}[h]
+\centering
+\caption{Experiment Components}
+\begin{tabular}{|p{4cm}|p{9cm}|}
+\hline
+\textbf{Component} & \textbf{Description} \\
+\hline
+Environment & Simulated Kubernetes-based microservices emitting synthetic telemetry (e.g., CPU spikes, memory leaks) \\
+\hline
+Ingestion Layer & OpenTelemetry agents export logs, metrics, traces to Kafka/Event Hub \\
+\hline
+Model & Lightweight online model (e.g., streaming GBDT or Transformer encoder) trained incrementally \\
+\hline
+Adversary Simulator & Injects controlled attacks (log poisoning, drift triggers, spoofed metrics) \\
+\hline
+Baselines & Static models retrained offline every $N$ hours \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Metrics}
+\begin{table}[h]
+\centering
+\caption{Proposed Evaluation Metrics}
+\begin{tabular}{|p{4cm}|p{5cm}|p{4cm}|}
+\hline
+\textbf{Metric} & \textbf{Description} & \textbf{Target} \\
+\hline
+Adaptation Latency & Time from drift onset to model update & $\leq$ 60s \\
+\hline
+False Positive Rate & Fraction of benign anomalies flagged & $\leq$ 4.0\% \\
+\hline
+Drift Detection Recall & Percentage of shifts correctly identified & $\geq$ 90\% \\
+\hline
+Recovery Iterations & Steps to return to baseline & $\leq$ 10 \\
+\hline
+Retraining Lag (baseline) & Delay in static models due to offline training & 15–60 min \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Illustrative Results (Planned)}
+\begin{table}[h]
+\centering
+\caption{Anticipated Improvements}
+\begin{tabular}{|p{4cm}|p{3cm}|p{3cm}|p{4cm}|}
+\hline
+\textbf{Metric} & \textbf{Static Baseline} & \textbf{Adaptive System} & \textbf{Improvement} \\
+\hline
+Time-to-adapt & 900s & 48s & 18$\times$ faster \\
+\hline
+False positives & 12.3\% & 3.7\% & 3$\times$ reduction \\
+\hline
+Drift recall & 0.68 & 0.93 & +25\% accuracy \\
+\hline
+Poisoning recovery & N/A & Self-heals in 9 steps & N/A \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Validation Tools}
+\begin{itemize}
+    \item \textbf{Telemetry Replayer}: Replay known drift or anomaly patterns
+    \item \textbf{Custom Dashboard}: Visualize drift timelines, confidence drops
+    \item \textbf{Trust Score Visualizer}: Show telemetry trust evolution
+\end{itemize}
+
+\section{Discussion}
+
+\subsection{Engineering Challenges}
+\begin{itemize}
+    \item \textbf{Drift vs. Spikes}: Hard to distinguish persistent change from short-lived anomalies (e.g., maintenance windows)
+    \item \textbf{Telemetry Bloat}: High-cardinality data → Requires sketching or dimensionality reduction
+    \item \textbf{ML vs. Security Culture}: Balancing dynamism with reproducibility. Our approach favors adaptive-by-default, static-on-failure
+\end{itemize}
+
+\subsection{Broader Implications}
+\begin{itemize}
+    \item \textbf{From Alerts to Agents}: Transforms observability into proactive feedback for agents
+    \item \textbf{Resilient Infrastructure}: Enables context-aware, self-healing systems
+    \item \textbf{Regulatory Horizon}: Raises questions around governing adaptive models in production
+\end{itemize}
+
+\subsection{Limitations}
+\begin{itemize}
+    \item \textbf{Telemetry Noise}: May over-filter rare but important signals
+    \item \textbf{Model Fragility}: Risk of overfitting to transient inputs
+    \item \textbf{Latency Overhead}: Real-time adaptation adds delay
+\end{itemize}
+
+\subsection{Design Trade-offs}
+\begin{itemize}
+    \item \textbf{Adaptivity vs. Stability}: Fast updates increase oscillation risk
+    \item \textbf{Responsiveness vs. Reliability}: Trust scoring mitigates overreaction
+    \item \textbf{Transparency vs. Complexity}: Explainability adds overhead
+\end{itemize}
+
+\section{Conclusion \& Future Work}
+
+This paper proposed \textit{Telemetry as Memory}, a new paradigm where observability pipelines act as dynamic memory for adaptive AI agents. Integrating meta- and online learning with real-time telemetry enables agents to operate autonomously while maintaining operational resilience.
+
+Our architecture unifies concepts from MLOps, observability, and continual learning—yet also introduces challenges in trust scoring, governance, and attack resilience.
+
+\subsection{Future Work}
+\begin{itemize}
+    \item \textbf{Prototype Deployment}: Test in live environments with Kubernetes + OpenTelemetry + MLFlow
+    \item \textbf{Trust Scoring}: Explore cryptographic attestation, provenance tracking
+    \item \textbf{Governance Frameworks}: Implement policy-based update controls
+    \item \textbf{Feedback Loop Stability}: Analyze long-term drift behavior and safe disengagement
+    \item \textbf{Multi-Agent Extensions}: Enable coordination across agent swarms with shared memory
+\end{itemize}
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}
