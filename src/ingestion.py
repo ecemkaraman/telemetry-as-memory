@@ -1,3 +1,5 @@
+"""Stream-like Ingestion of Telemetry Data"""
+
 import time
 
 
