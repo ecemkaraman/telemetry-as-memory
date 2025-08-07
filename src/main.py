@@ -8,7 +8,7 @@ def main():
     telemetry_data = generate_telemetry(num_points=100, anomaly=False)
 
     # Initialize online model
-    model = OnlineModel(target="latency")
+    model = OnlineModel(target="latency_norm")
 
     # Stream data one by one
     for i, row in telemetry_data.iterrows():
@@ -16,7 +16,7 @@ def main():
         x_processed = preprocess(x)  # Optional preprocessing
 
         # Keep original latency value for comparison
-        true_value = x_processed["latency"]
+        true_value = x_processed["latency_norm"]
         prediction = model.predict(x_processed)
 
         # Fit model

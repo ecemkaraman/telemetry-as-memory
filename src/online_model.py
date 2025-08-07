@@ -1,10 +1,8 @@
 from river import linear_model, preprocessing, compose, metrics
-from river.utils import dict2numpy
-import pandas as pd
 
 
 class OnlineModel:
-    def __init__(self, target="latency"):
+    def __init__(self, target="latency_norm"):
         # Store the target variable name (e.g., 'latency', 'cpu', 'errors')
         self.target = target
 
@@ -22,14 +20,16 @@ class OnlineModel:
         Expects a dictionary with the target included.
         """
         y = x.pop(self.target)
+        y_pred = self.model.predict_one(x)
         self.model.learn_one(x, y)
-        self.metric = self.metric.update(y_true=y, y_pred=self.model.predict_one(x))
+        # Update the metric with the true value and prediction
+        self.metric.update(y, y_pred)
 
     def predict(self, x: dict):
         return self.model.predict_one(x)
 
     def score(self):
-        return self.metric.get()
+        return self.metric.get()  # type: ignore
 
     def reset(self):
         self.model = compose.Pipeline(
