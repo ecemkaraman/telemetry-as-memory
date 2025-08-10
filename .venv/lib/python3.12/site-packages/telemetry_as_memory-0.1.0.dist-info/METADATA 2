@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: telemetry-as-memory
+Version: 0.1.0
+Summary: Closed-loop Telemetry-as-Memory MVP with evaluation
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: river>=0.21
+Requires-Dist: numpy>=1.23
+Requires-Dist: pandas>=2.0
+Requires-Dist: matplotlib>=3.8
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: mmh3>=4.1
+Requires-Dist: scikit-learn>=1.4

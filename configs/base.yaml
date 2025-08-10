@@ -1,0 +1,5 @@
+ticks: 1200
+drift_tick: 300
+retrain_every: 300
+seeds: [1,2,3,4,5]
+out_dir: results

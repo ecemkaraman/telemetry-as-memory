@@ -1,4 +1,5 @@
-import numpy as np, pandas as pd
+import numpy as np
+import pandas as pd
 
 
 def rolling_acc(df: pd.DataFrame, w: int = 25):

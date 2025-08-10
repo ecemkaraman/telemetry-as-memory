@@ -1,4 +1,5 @@
-import re, mmh3
+import re
+import mmh3
 
 
 def metric_feats(e: dict):

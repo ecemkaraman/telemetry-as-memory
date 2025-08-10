@@ -1,4 +1,7 @@
-import argparse, yaml, numpy as np, pandas as pd
+import argparse
+import yaml
+import numpy as np
+import pandas as pd
 from tam.telemetry import stream
 from tam.features import featurize
 from tam.trust import score as trust_score
