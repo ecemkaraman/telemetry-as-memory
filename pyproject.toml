@@ -1,0 +1,19 @@
+[project]
+name = "telemetry-as-memory"
+version = "0.1.0"
+description = "Closed-loop Telemetry-as-Memory MVP with evaluation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "river>=0.21",
+  "numpy>=1.23",
+  "pandas>=2.0",
+  "matplotlib>=3.8",
+  "pyyaml>=6.0",
+  "mmh3>=4.1",
+  "scikit-learn>=1.4"
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,68 @@
+digraph G {
+  graph [rankdir=TB, splines=ortho, labelloc="t", fontsize=11, margin=0.05];
+  node  [shape=box, style="rounded", fontname="Helvetica", fontsize=9];
+  edge  [arrowsize=0.7];
+
+  // (1) Ingestion
+  subgraph cluster_ing {
+    label="(1) Ingestion"; color="#BBBBBB";
+    A1 [label="Telemetry Sources\nLogs • Metrics • Traces"];
+    A2 [label="OTel Agents / Collectors"];
+    A3 [label="Message Bus\nKafka | Event Hub | Kinesis"];
+    A1 -> A2 -> A3;
+  }
+
+  // (2) Preprocess & Trust
+  subgraph cluster_pre {
+    label="(2) Preprocess & Trust"; color="#BBBBBB";
+    B1 [label="Noise Filtering\nSchema / PII"];
+    B2 [label="Featurize\nmetrics | logs | traces"];
+    B3 [label="Trust Scoring\nf(auth, schema, anomaly)"];
+    B1 -> B2 -> B3;
+  }
+
+  // (3) Memory
+  subgraph cluster_mem {
+    label="(3) Memory"; color="#BBBBBB";
+    C1 [label="Short‑Term\nSliding Window"];
+    C2 [label="Long‑Term\nVector DB (FAISS/Pinecone)"];
+    C1 -> C2;
+  }
+
+  // (4) Adaptive Learning
+  subgraph cluster_learn {
+    label="(4) Adaptive Learning"; color="#BBBBBB";
+    D1 [label="Online / Meta Learning"];
+    D2 [label="Drift Detection\nADWIN / DDM"];
+    D3 [label="Trust‑Weighted Updates"];
+    D1 -> D2 -> D3;
+  }
+
+  // (5) Inference & Action
+  subgraph cluster_inf {
+    label="(5) Inference & Action"; color="#BBBBBB";
+    E1 [label="Predict + Retrieve\nSimilar Incidents"];
+    E2 [label="Policy Action\nrestart | scale | block | no‑op"];
+    E1 -> E2;
+  }
+
+  // (6) Governance & Explainability
+  subgraph cluster_gov {
+    label="(6) Governance & Explainability"; color="#BBBBBB";
+    F1 [label="Policy Gates\nconfidence | blast radius | human‑in‑loop"];
+    F2 [label="Explainability Check\nSHAP/LIME → rollback if unreliable"];
+    F3 [label="Audit Trail\nsource | trust | features | pred | action | outcome"];
+    F1 -> F2 -> F3;
+  }
+
+  // Main vertical flow
+  A3 -> B1;
+  B3 -> C1;
+  C2 -> D1;
+  D3 -> E1;
+  E2 -> F1;
+  F3 -> A1; // feedback loop back to ingestion
+
+  // Tighten spacing for page fit
+  ranksep=0.35; nodesep=0.25;
+}
