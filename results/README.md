@@ -35,11 +35,11 @@ This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic
 
 ## Scenarios
 
-1. **Concept Drift** → error rate suddenly increases (simulated drift).
-2. **Poisoned Logs** → fake `"ERROR"` strings from untrusted sources.
-3. **Novel Incident** → new pattern (`"disk full"`) unseen in training.
+1. **Concept Drift** → error rate suddenly increases at tick ~300 (**implemented & evaluated here**).
+2. **Poisoned Logs** → inject fake `"ERROR"` strings from untrusted sources (**in progress**; will validate trust scores block poisoning).
+3. **Novel Incident** → introduce unseen pattern (`"disk full"`) (**in progress**; will test embedding-based retrieval for adaptation).
 
-## Results
+## Results (Scenario 1: Concept Drift)
 
 ### 1. Rolling Accuracy vs Ticks (`results/figs/acc_timeline.png`)
 <img src="https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/figs/acc_timeline.png" alt="Accuracy Timeline" width="400" height="300"/>
@@ -114,5 +114,9 @@ Baseline shows latency \~300 ticks → \~80% slower recovery.
    * Closed-Loop continuously learns → no retrain downtime.
    * Trust scoring mitigates poisoning by ignoring low-confidence logs.
 
-**Implications:** These results suggest that embedding memory (via long-term vector storage + trust-weighted updates) enables operational AI systems to remain accurate under evolving telemetry conditions—critical for incident prediction and remediation in dynamic infrastructure environments.
+**Implications:** Scenario 1 results suggest that embedding memory (via long-term vector storage + trust-weighted updates) enables operational AI systems to remain accurate under evolving telemetry conditions—critical for incident prediction and remediation in dynamic infrastructure environments.
 
+## Next Steps
+
+- **Scenario 2 (Poisoned Logs)** → Add adversarial log injections with trust gating.
+- **Scenario 3 (Novel Incident)** → Test retrieval-augmented embeddings for unseen incident patterns.
