@@ -100,5 +100,5 @@ Baseline shows latency \~300 ticks → \~80% slower recovery.
    * Closed-Loop continuously learns → no retrain downtime.
    * Trust scoring mitigates poisoning by ignoring low-confidence logs.
 
-
+**Implications:** These results suggest that embedding memory (via long-term vector storage + trust-weighted updates) enables operational AI systems to remain accurate under evolving telemetry conditions—critical for incident prediction and remediation in dynamic infrastructure environments.
 
