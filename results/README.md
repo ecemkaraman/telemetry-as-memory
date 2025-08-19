@@ -40,8 +40,10 @@ This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic
   * Slight jitter (continuous updates).
   * Post-drift → rapid recovery in \~25–30 ticks.
   * Stabilizes to high accuracy long before baseline retrains.
+ https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/figs/acc_timeline.png?raw=true<img width="1920" height="1440" alt="image" src="https://github.com/user-attachments/assets/f0ada5d8-ec39-4ed3-8dfb-034e4c4b39ee" />
 
-**Key takeaway:** Closed-loop recovers **10× faster** than baseline.
+
+**Comparison:** Closed-loop recovers **10× faster** than baseline.
 
 ---
 
@@ -51,6 +53,8 @@ This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic
 * **Closed-Loop:** Small FP rate (\~3–4%) due to real-time actioning.
 
 **Trade-off:** Slight FP cost, but vastly better uptime.
+https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/figs/fp_rate.png?raw=true<img width="1920" height="1440" alt="image" src="https://github.com/user-attachments/assets/d4bd6c41-47df-49c9-b7b5-79f338ee458a" />
+
 
 ---
 
@@ -99,7 +103,5 @@ Baseline shows latency \~300 ticks → \~80% slower recovery.
    * Closed-Loop continuously learns → no retrain downtime.
    * Trust scoring mitigates poisoning by ignoring low-confidence logs.
 
-
-Would you like me to also create the **LaTeX snippet for results tables + figure captions** so you can directly paste into your arXiv paper? That way your GitHub + paper stay consistent.
 
 
