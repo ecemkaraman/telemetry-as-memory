@@ -48,15 +48,12 @@ This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic
 ---
 
 ### 2. False Positive Rate
-<img src="https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/figs/fp_rate.png" alt="False Positive Rate" width="800" height="700"/>
+<img src="https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/figs/fp_rate.png" alt="False Positive Rate" width="400" height="300"/>
 
 * **Baseline:** Zero FPs (because it “does nothing” during drift).
 * **Closed-Loop:** Small FP rate (\~3–4%) due to real-time actioning.
 
 **Trade-off:** Slight FP cost, but vastly better uptime.
-https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/figs/fp_rate.png?raw=true<img width="800" height="700" alt="image" src="https://github.com/user-attachments/assets/d4bd6c41-47df-49c9-b7b5-79f338ee458a" />
-
-
 ---
 
 ## Aggregate Metrics (`results/metrics/*.json`)
