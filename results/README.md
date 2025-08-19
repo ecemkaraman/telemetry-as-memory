@@ -2,6 +2,20 @@
 
 This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic Kubernetes-like telemetry stream with controlled drift, poisoning, and novel incident scenarios.
 
+## Hypotheses
+
+- **Adaptation Speed** → Closed-loop should recover from drift faster than static baseline.
+- **Safety Under Attack** → Trust scores should block poisoned or fake telemetry.
+- **Novel Incident Handling** → Closed-loop should adapt to unseen issues more quickly than static baselines.
+
+## KPIs
+
+- **Adaptation Latency** → Time between drift start & restored prediction accuracy
+- **False Positives / Negatives** → pre vs post adaptation
+- **Drift Detection Recall** → ADWIN triggers vs true drifts
+- **Action ROI** → % actions that reduce error in next N ticks
+- **Recovery Iterations** → # of updates needed to reach baseline accuracy
+
 ## Evaluation Setup
 
 * **Telemetry Generator (`src/tam/telemetry.py`)**
