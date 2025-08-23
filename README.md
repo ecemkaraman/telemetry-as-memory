@@ -63,7 +63,7 @@ The goal is to lay the groundwork for **autonomous, secure, and explainable AIO
 
 ## System Flow
 
-<img width="1783" height="1090" alt="image" src="https://github.com/user-attachments/assets/274b7346-f9a4-4326-82b7-bd7dc03bb6eb" />
+<img width="1783" height="1090" alt="image" src="https://github.com/ecemkaraman/telemetry-as-memory/blob/main/figures/tam.png" />
 
 
 ---
