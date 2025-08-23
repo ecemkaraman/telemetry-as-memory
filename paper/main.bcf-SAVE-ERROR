@@ -2385,8 +2385,7 @@
     <bcf:citekey order="5" intorder="2">grafana2023adaptive</bcf:citekey>
     <bcf:citekey order="6" intorder="1">gama2014conceptdrift</bcf:citekey>
     <bcf:citekey order="7" intorder="1">carlini2017poisoning</bcf:citekey>
-    <bcf:citekey order="7" intorder="2">barreno2006secureml</bcf:citekey>
-    <bcf:citekey order="7" intorder="3">biggio2012poisoning</bcf:citekey>
+    <bcf:citekey order="7" intorder="2">biggio2012poisoning</bcf:citekey>
     <bcf:citekey order="8" intorder="1">opentelemetry2023spec</bcf:citekey>
     <bcf:citekey order="9" intorder="1">grafana2023adaptive</bcf:citekey>
     <bcf:citekey order="10" intorder="1">google2016sre</bcf:citekey>
@@ -2401,27 +2400,3 @@
     <bcf:citekey order="15" intorder="1">tian2024omlog</bcf:citekey>
     <bcf:citekey order="16" intorder="1">yang2025llmrl</bcf:citekey>
     <bcf:citekey order="17" intorder="1">kephart2003autonomic</bcf:citekey>
-    <bcf:citekey order="18" intorder="1">lundberg2017shap</bcf:citekey>
-    <bcf:citekey order="18" intorder="2">ribeiro2016lime</bcf:citekey>
-  </bcf:section>
-  <!-- SORTING TEMPLATES -->
-  <bcf:sortingtemplate name="none">
-    <bcf:sort order="1">
-      <bcf:sortitem order="1">citeorder</bcf:sortitem>
-    </bcf:sort>
-    <bcf:sort order="2">
-      <bcf:sortitem order="1">intciteorder</bcf:sortitem>
-    </bcf:sort>
-  </bcf:sortingtemplate>
-  <!-- DATALISTS -->
-  <bcf:datalist section="0"
-                name="none/global//global/global/global"
-                type="entry"
-                sortingtemplatename="none"
-                sortingnamekeytemplatename="global"
-                labelprefix=""
-                uniquenametemplatename="global"
-                labelalphanametemplatename="global"
-                namehashtemplatename="global">
-  </bcf:datalist>
-</bcf:controlfile>

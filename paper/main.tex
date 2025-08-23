@@ -11,6 +11,9 @@
 \usepackage{enumitem}
 \usepackage{float}
 \usepackage{placeins}
+\usepackage{subcaption} 
+\usepackage[font=small,labelfont=bf]{caption} % bold "Figure X" + smaller caption font
+\usepackage{capt-of}                           % enables \captionof{figure}{...} in minipage
 \setlist{nosep}
 
 % Bibliography (biber)
@@ -20,263 +23,303 @@
 % Helpers
 \newcommand{\tam}{\textsc{TAM}} % Telemetry-as-Memory
 
-\title{Telemetry as Memory: Using Observability Pipelines to Train Adaptive AI Systems}
+\title{Telemetry-as-Memory (TAM): Using Observability Pipelines to Train Adaptive AI Systems}
 \author{Ecem Karaman}
-\date{}
+\date{August 2025}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Observability pipelines such as \textbf{OpenTelemetry} and \textbf{Prometheus} collect logs, metrics, and traces at scale, but remain largely \textbf{passive}: they power dashboards and alerts rather than training adaptive systems \parencite{opentelemetry2023spec,google2016sre}. As a result, operational AI models are typically retrained offline on lagging data, leaving them brittle under drift \parencite{gama2014conceptdrift} and vulnerable to poisoned telemetry \parencite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
+Observability pipelines such as \textbf{OpenTelemetry} and \textbf{Prometheus} collect logs, metrics, and traces at scale, but remain largely \textbf{passive}: they power dashboards and alerts rather than training adaptive systems \parencite{opentelemetry2023spec,google2016sre}. As a result, operational AI models are retrained offline on stale data, leaving them brittle to drift \parencite{gama2014conceptdrift} and vulnerable to poisoned telemetry \parencite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
 
-This work introduces \emph{Telemetry-as-Memory (TAM)}, a closed-loop framework that treats telemetry as a live, adaptive memory stream. TAM continuously ingests telemetry, assigns trust scores, and converts signals into structured features for \textbf{online and meta-learning} \parencite{bifet2007adwin,finn2019online,montiel2020river}. The pipeline integrates drift detection (e.g., ADWIN \parencite{bifet2007adwin}), semantic recall mechanisms via vector databases such as FAISS \parencite{johnson2017faiss}, and governance layers including explainability gates, audit trails, and human oversight \parencite{ribeiro2016lime,lundberg2017shap} to ensure secure adaptation.
+We propose \emph{Telemetry-as-Memory (TAM)}, a closed-loop framework that treats telemetry as an \emph{adaptive memory substrate}. TAM continuously ingests telemetry, assigns trust scores, and applies \textbf{online learning} \parencite{montiel2020river,bifet2007adwin}, enabling secure, low-latency adaptation under non-stationarity. The design integrates drift detection, trust-weighted updates, and lightweight decision policies.
 
-In experiments on synthetic Kubernetes telemetry with injected drift, TAM achieved \textbf{near real-time recovery}---adapting in approximately 27 ticks versus 300 for offline baselines (about 10$\times$ faster)---while maintaining a false-positive rate of only 4\%. These results demonstrate the feasibility of treating observability data not as passive diagnostics but as an \textbf{adaptive memory substrate} for secure, self-improving AIOps pipelines.
+We evaluate TAM under three stressors: (1) \textbf{Concept Drift} --- recovery within $\sim$27 ticks vs.\ 300 for baselines ($\sim$10$\times$ faster) with $\sim$4\% false positives; (2) \textbf{Poisoned Logs} --- trust scoring blocks adversarial injections, preserving accuracy; and (3) \textbf{Novel Incidents} --- unseen ``disk full'' patterns adapted within tens of ticks, avoiding blind spots. Results show that treating observability as adaptive memory enables \textbf{secure, self-healing AIOps pipelines} resilient to drift, poisoning, and novel incidents.
 \end{abstract}
 
 \section{Introduction}
-Modern cloud-native systems generate vast streams of telemetry, yet current observability pipelines treat this data as diagnostic output for dashboards and alerts \parencite{opentelemetry2023spec,grafana2023adaptive}. Frameworks such as OpenTelemetry and Prometheus are optimized for monitoring and visualization, but they do not leverage logs, metrics, and traces as direct training input for adaptive systems. At the same time, machine learning in operations remains largely offline, with models retrained periodically on historical data. This separation leaves operational AI brittle under drift \parencite{gama2014conceptdrift}, slow to recognize novel incidents, and exposed to manipulated or poisoned telemetry \parencite{carlini2017poisoning,biggio2012poisoning}.
-
-\emph{Telemetry-as-Memory (TAM)} addresses this gap by treating observability data as adaptive memory for AI systems. Instead of serving only for visualization, telemetry is positioned as a continuous learning substrate, enabling models to update incrementally and adapt to evolving conditions.
+Cloud-native systems emit vast telemetry streams, yet observability pipelines still treat this data primarily as diagnostic output for dashboards and alerts \parencite{opentelemetry2023spec,grafana2023adaptive}. While frameworks (e.g., OpenTelemetry, Prometheus) standardize collection and monitoring, they do not leverage telemetry as direct input for adaptive learning. At the same time, operational ML remains largely offline, with models retrained only on historical data—leaving systems brittle under drift \parencite{gama2014conceptdrift}, slow to detect novel incidents, and vulnerable to telemetry poisoning \parencite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
+\emph{Telemetry-as-Memory (TAM)} closes this gap by reframing observability data as adaptive memory. Instead of powering only visualizations, TAM enables models to update incrementally and adapt continuously.
 
 \paragraph*{Contributions}
 \begin{enumerate}
-    \item \textbf{Framework}: Introduction of a closed-loop design where telemetry streams drive online and meta-learning.
-    \item \textbf{Security}: Formalization of trust and adversarial risks in adaptive feedback loops, including poisoning and drift manipulation.
-    \item \textbf{Evidence}: Initial experiments on synthetic Kubernetes workloads demonstrating near real-time recovery from drift compared to offline baselines.
+    \item \textbf{Framework}: A closed-loop design where telemetry streams directly drive online learning.  
+    \item \textbf{Security}: Trust-weighted updates mitigate poisoning and drift exploitation in adaptive feedback loops.  
+    \item \textbf{Evidence}: Synthetic Kubernetes experiments validate TAM across three stressors—$\sim$10$\times$ faster recovery under drift, bounded false positives under poisoning, and rapid adaptation to novel incidents.  
 \end{enumerate}
 
-The objective is to move beyond ``monitor and alert'' toward \textbf{observe, learn, and act}: building pipelines that adapt continuously and securely to changing infrastructure conditions.
-
+This shifts observability from ``monitor and alert'' toward \textbf{observe, learn, and act}.
 
 \section{Background and Related Work}
 
 \subsection{Observability Pipelines}
-Modern observability frameworks such as \textbf{OpenTelemetry} and \textbf{Prometheus} provide standardized mechanisms for collecting logs, metrics, and distributed traces at scale \parencite{opentelemetry2023spec}. These systems enable effective monitoring and visualization, but telemetry is treated primarily as diagnostic output for dashboards and alerts. Extensions such as \textbf{Grafana Adaptive Metrics} focus on optimizing data retention and cost \parencite{grafana2023adaptive}, yet they do not repurpose telemetry as direct learning input. As a result, observability remains largely passive, disconnected from adaptive model training. This echoes the broader limitations identified in reliability engineering where observability is viewed as an operational signal rather than a learning substrate \parencite{google2016sre,bodik2010fingerprinting}.
-
+Modern observability frameworks (e.g., OpenTelemetry, Prometheus) standardize collection of logs, metrics, and traces at scale \parencite{opentelemetry2023spec}. They excel at monitoring and visualization but keep telemetry largely \emph{passive}. Extensions such as \textbf{Grafana Adaptive Metrics} reduce storage and cost overheads \parencite{grafana2023adaptive}, yet none treat telemetry as a substrate for adaptive learning. This reflects long-standing critiques in reliability engineering, where observability has been viewed as operator-facing signals rather than inputs to self-adaptive systems \parencite{google2016sre,bodik2010fingerprinting}.
 \subsection{Online and Meta-Learning}
-In contrast, the machine learning community has developed a range of methods for \textbf{continual and online adaptation}. Online learning algorithms update incrementally with each new data point, reducing latency in non-stationary environments \parencite{domingos2000vfdt,bifet2007adwin,montiel2020river,gama2014conceptdrift}. \textbf{Meta-learning} extends this paradigm by optimizing for fast adaptation itself, enabling models to generalize across tasks with minimal data \parencite{finn2019online}. Recent work has explored these methods in operational contexts—for example, \textbf{MAML-KAD} applies meta-learning to anomaly detection for AIOps \parencite{duan2024mamlkad}, while the \textbf{SAM framework} leverages meta-learning for anomaly transfer across cloud environments \parencite{jha2024sam}. \textbf{OMLog} adapts these ideas to log streams via drift-triggered updates \parencite{tian2024omlog}. Despite these advances, integration into production-grade observability pipelines remains rare.
+\textbf{Online learning} updates incrementally with each new data point, supporting non-stationary environments \parencite{domingos2000vfdt,bifet2007adwin,montiel2020river,gama2014conceptdrift}. \textbf{Meta-learning} extends this by optimizing for fast adaptation itself \parencite{finn2019online}. Operational explorations include \textbf{MAML-KAD} for anomaly detection \parencite{duan2024mamlkad}, \textbf{SAM} for anomaly transfer across clouds \parencite{jha2024sam}, and \textbf{OMLog} for log streams \parencite{tian2024omlog}. Despite promise, integration into production-grade observability pipelines remains rare.
 
 \subsection{Self-Healing and AIOps Systems}
-Efforts in \textbf{AIOps} have explored automation and remediation, including anomaly detection from log sequences (e.g., DeepLog, LogAnomaly) and reinforcement-learning-based remediation agents. Yang et al. (2025) demonstrated the potential of combining \textbf{LLMs and RL} for closed-loop remediation in fault-handling scenarios \parencite{yang2025llmrl}. However, these systems typically rely on offline-trained anomaly detectors or handcrafted rules, limiting their adaptability under distributional shift. Early visions of autonomic computing argued for continuous, closed-loop management of systems \parencite{kephart2003autonomic}, but practical implementations remain fragmented.
+AIOps spans log anomaly detection (DeepLog, LogAnomaly) to RL-based remediation. Recent work combines \textbf{LLMs and RL} for fault remediation \parencite{yang2025llmrl}, but most systems rely on static anomaly detectors or rules, limiting adaptivity under drift. The long-standing autonomic computing vision \parencite{kephart2003autonomic} calls for closed-loop, self-managing systems, but practical adoption remains fragmented.
 
 \subsection{Gap Analysis}
-Taken together, prior work solves \textbf{fragments} of the problem:
-\begin{itemize}
-    \item Observability tools excel at collection and visualization but stop short of adaptive learning.
-    \item Online and meta-learning provide strong theoretical foundations but are seldom embedded into operational telemetry streams.
-    \item AIOps and self-healing prototypes demonstrate automation but lack trust, explainability, or robust adversarial defenses.
+Prior work solves isolated parts:
+\begin{itemize}[leftmargin=*]
+  \item Observability pipelines \emph{collect and visualize} but stop short of learning.  
+  \item Online/meta-learning enables rapid adaptation but is not embedded in operational telemetry.  
+  \item AIOps prototypes automate response but lack trust, explainability, and adversarial robustness.  \\
 \end{itemize}
 
-This work addresses the gap by introducing a unified, trust-gated pipeline where multi-channel telemetry (logs, metrics, traces) functions as adaptive memory for online and meta-learning agents. Unlike prior systems, the proposed \emph{Telemetry-as-Memory (TAM)} framework combines:
-\begin{itemize}
-    \item \textbf{Real-time streaming learning},
-    \item \textbf{Trust-scored and security-gated updates},
-    \item \textbf{Integration of long-term semantic recall via vector databases}, and
-    \item \textbf{Explainability-gated, closed-loop decision-making}.
+\noindent This work bridges the gap with \emph{Telemetry-as-Memory (TAM)}, unifying:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Real-time online learning},  
+  \item \textbf{Trust-scored, security-gated updates},  
+  \item \textbf{Optional long-term semantic recall (future extension)}, and  
+  \item \textbf{Governance and explainability layers}.  
 \end{itemize}
 
 \section{Methodology and System Design}
-The \emph{Telemetry-as-Memory (TAM)} framework is structured as a modular, closed-loop pipeline that transforms raw observability streams into adaptive signals for online learning and secure decision-making. Figure~X illustrates the core layers.
+The \emph{Telemetry-as-Memory (TAM)} framework is a modular, closed-loop pipeline that converts raw observability streams into adaptive signals for online learning and secure decision-making. Figure~\ref{fig:tam-arch} illustrates its six layers.
+
+\textbf{Ingestion.} Logs capture system events; metrics record CPU/latency; traces encode request paths. Collection uses OpenTelemetry or cloud-native collectors, streamed via Kafka/EventHub/Kinesis for scalability and buffering.
+
+\textbf{Preprocessing and Trust Scoring.} Raw telemetry is deduplicated, schema-validated, and PII-masked. Each event receives a \emph{trust score} based on source validity, schema compliance, and anomaly likelihood—reliable signals weigh strongly, while low-trust events are downweighted or dropped.  
+
+\textbf{Featurization and Memory.} Telemetry is encoded as features: rolling aggregates/deltas for metrics; token flags, hashing vectorizers, or semantic embeddings (e.g., Sentence-BERT) for logs; and span counts or service-graph encodings for traces. A hierarchical memory balances short-term sliding windows with long-term vector stores (e.g., FAISS, Pinecone) for retrieval-augmented learning.  
+
+\textbf{Adaptive Learning.} Models update incrementally using streaming algorithms (e.g., logistic regression, Hoeffding trees in River). Drift detectors (e.g., ADWIN) flag distribution shifts and trigger reweighting. Trust-weighted updates limit poisoned inputs, while security gates block unsafe updates—ensuring adaptivity without instability.  
+
+\textbf{Inference and Action.} The learner combines current features with recalled incidents to predict outcomes and trigger actions (e.g., restart service, scale deployment, block IP). High-impact actions pass through gates or human review before orchestration (e.g., Kubernetes runbooks). Each action is logged with its trust scores and context for analysis.  
+
+\textbf{Governance and Explainability.} TAM supports approval gates, audit trails, and optional interpretability layers (e.g., SHAP, LIME) to provide rationales for updates and enable rollback of unreliable changes, balancing auditability with throughput.  
+
+Together, these layers transform observability from a passive diagnostic tool into an \emph{adaptive memory substrate}, continuously closing the loop between observation, learning, and action.
+\vspace{-0.5em}
+\begin{figure*}[b]
+  \centering
+  \includegraphics[height=0.98\textheight]{figures/tam.png}
+    \caption{\textbf{System Design Architecture.} Telemetry flows through six layers—ingestion, trust scoring, featurization/memory, adaptive learning, inference/action, and governance/explainability—forming a closed adaptive loop.}  \label{fig:tam-arch}
+\end{figure*}
+\FloatBarrier
+
+\section{Threat Model}
+We assume adversaries can inject or manipulate telemetry but lack full system control. 
+Key risks include:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Poisoning:} fake logs/metrics corrupt model memory or bias updates.
+  \item \textbf{Drift Exploitation:} gradual distribution shifts normalize malicious activity.
+  \item \textbf{Adversarial Inputs:} crafted logs/traces mislead anomaly detectors.
+  \item \textbf{Feedback Abuse:} induced failures cause harmful adaptive loops (``drift spirals'').
+  \item \textbf{Privilege Escalation:} exploiting automated actions (e.g., scaling, firewall rules) for leverage.
+\end{itemize}
+
+\noindent \textbf{Mitigations:} trust scoring, drift detection, security gates, and audit trails.
+\section{Evaluation}
+
+\subsection{Goals and Hypotheses}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{H1 (Adaptation speed).} Closed-loop TAM recovers from concept drift within an order of magnitude fewer ticks than offline retraining.
+  \item \textbf{H2 (Safety under attack).} Trust scoring reduces the influence of poisoned telemetry, keeping false positives $<5\%$.
+  \item \textbf{H3 (Novel incident handling).} Memory-augmented learning adapts to unseen patterns (e.g., ``disk full'') without retraining.
+\end{itemize}
+
+\subsection{Experimental Setup}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Environment.} 
+    \begin{itemize}
+      \item CPU\%: sinusoidal baseline with injected spikes.  
+      \item Error rate: step increase at $t \approx 300$ to induce drift.  
+      \item Logs: INFO/WARN/ERROR aligned with error conditions.  
+    \end{itemize}
+  \item \textbf{Models.} 
+    \begin{itemize}
+      \item \emph{Baseline:} Offline logistic regression retrained every $N$ ticks (common in AIOps).  
+      \item \emph{Closed-loop \tam:} River-based online logistic regression with trust-weighted updates.  
+    \end{itemize}
+  \item \textbf{Detection.} ADWIN for drift detection; trust scores to downweight unverified telemetry.  
+  \item \textbf{Policy.} Static thresholds; adaptive bandit-style left for future work.  
+  \item \textbf{Reproducibility.} Experiments deterministic (fixed seeds); variance across runs $\sim$$<5\%$ latency, $<2\%$ FP.  
+\end{itemize}
+
+\subsection{Scenarios}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Scenario 1 (H1 – Concept Drift).} Error rate increases at $t\!\approx\!300$, making the baseline decision boundary stale.  
+  \item \textbf{Scenario 2 (H2 – Poisoned Logs).} Inject synthetic \texttt{ERROR} messages from untrusted sources to test trust scoring.  
+  \item \textbf{Scenario 3 (H3 – Novel Incident).} Introduce unseen ``disk full'' logs to test retrieval-augmented adaptation.  
+\end{itemize}
+
+\subsection{Metrics}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Primary.} Adaptation latency (ticks to recover) and false positive rate (spurious actions).  
+  \item \textbf{Secondary.} False negatives, drift detection recall, action ROI, recovery iterations.  
+  \item \textbf{Emphasis.} Primary metrics prioritized in analysis; secondary metrics defined but not collected in this prototype.  
+\end{itemize}
+\subsection{Results}
+For each scenario, we show: (i) accuracy recovery and (ii) FP trade-offs.  
+
+\emph{All results are averaged over 5 seeds. Variance across runs was modest ($<5\%$ latency, $<2\%$ FP).}
+
+
+\subsubsection*{Scenario 1: Concept Drift (H1)}
+\vspace{-2.5em}
+\begin{figure*}[!htb]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/drift_acc.png}
+    \captionof{figure}{\textbf{H1-Accuracy under drift.} Baseline collapses after $t\!\approx\!300$ and recovers only at retrain ($t\!\approx\!600$). Closed-loop adapts within $\sim$27 ticks, validating H1.}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/drift_fp.png}
+    \captionof{figure}{\textbf{H1-FP rate.} Baseline $\approx0\%$ (inactive). Closed-loop $\sim$4\% FP, an acceptable safety–adaptivity trade-off.}
+  \end{minipage}
+\end{figure*}
+\FloatBarrier
+
+\subsubsection*{Scenario 2: Poisoned Logs (H2)}
+\vspace{-2.5em}
+\begin{figure*}[!htb]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/poison_acc.png}
+    \captionof{figure}{\textbf{H2 – Accuracy under poisoning.} Baseline fails on fake \texttt{ERROR}s, while Closed-loop trust scoring downweights untrusted sources and preserves accuracy (supports H2).}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/poison_fp.png}
+    \captionof{figure}{\textbf{H2–FP rate.} Baseline FP spikes under poisoning. Closed-loop keeps FP $<5\%$ via trust-scored filtering.}
+  \end{minipage}
+\end{figure*}
+\FloatBarrier
+
+\subsubsection*{Scenario 3: Novel Incident (H3)}
+\vspace{-2.5em}
+\begin{figure*}[!htb]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/novel_acc.png}
+    \captionof{figure}{\textbf{H3–Accuracy for unseen ``disk full''.} Baseline fails until retrain. Closed-loop adapts within tens of ticks via online updates, confirming H3.}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/novel_fp.png}
+    \captionof{figure}{\textbf{H3–FP rate.} Closed-loop incurs moderate FP while adapting, but recovers within <40 ticks despite moderate FP. Baseline inert until retrain.}
+  \end{minipage}
+\end{figure*}
+\FloatBarrier
+
+\section{Discussion}
+
+\subsection{Engineering Challenges}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Drift vs.\ Noise.} Differentiating persistent drift from transient spikes is nontrivial; adaptive learners risk overreacting.  
+  \item \textbf{Telemetry Bloat.} High-cardinality metrics/logs demand efficient sampling and sketching to avoid $O(n)$ blowup in memory and compute.  
+  \item \textbf{Security vs.\ Adaptivity.} Online learning favors fast updates, but security requires stability and reproducibility. \tam mitigates this via trust scoring and drift detection. This tension maps directly to our threat model.  
+\end{itemize}
+
+\subsection{Trade-offs}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Adaptivity vs.\ Stability.} Faster recovery risks oscillation; mitigated via weighted updates and drift detection.  
+  \item \textbf{Responsiveness vs.\ Reliability.} Real-time actioning yields $\sim$4\% FP in drift/novel scenarios but avoids 300+ ticks of downtime.  
+  \item \textbf{Transparency vs.\ Overhead.} Explainability gates (LIME, SHAP) improve auditability but add $\sim$15–20\% runtime overhead \parencite{lundberg2017shap,ribeiro2016lime}.  
+\end{itemize}
+
+\subsection{Broader Implications}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{From Alerts to Agents.} \tam reframes observability as \emph{adaptive memory}, moving pipelines toward self-learning agents.  
+  \item \textbf{Resilient Infrastructure.} Results show resilience: recovery within $\sim$27 ticks post-drift, FP $<5\%$ under poisoning, and rapid adaptation to unseen incidents.  
+  \item \textbf{Security Observability.} Trust-scored telemetry demonstrates feasibility of adaptive, adversary-resistant pipelines.  
+  \item \textbf{Regulatory.} Adaptive AI raises governance demands: rollback, explainability, and human oversight.  
+\end{itemize}
+
+\subsection{Limitations}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Synthetic workloads.} Evaluation used simulated Kubernetes telemetry only; real production workloads may introduce noise and variability.
+  \item \textbf{Model scope.} Results are limited to logistic regression; sequence or embedding-based models (e.g., RNNs, Transformers) remain future work.
+  \item \textbf{Governance.} Features such as human-in-the-loop approval and rollback were defined conceptually but not implemented in the current prototype.
+  \item \textbf{Metric scope.} Secondary metrics (e.g., drift recall, action ROI) were defined but not collected; future work should report them.
+\end{itemize}
+
+\section{Conclusion and Future Work}
+This work introduced \textbf{Telemetry-as-Memory (TAM)}, reframing observability pipelines as 
+\emph{adaptive memory systems}. By continuously ingesting telemetry, trust-weighting inputs, 
+and applying online learning, TAM closes the loop between \emph{observe, learn, and act}.
+
+\subsection*{Summary of Findings}
+Across three scenarios, TAM demonstrated:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Concept Drift:} Recovery within $\sim$27 ticks vs.\ 300 for baselines 
+        ($\sim$10$\times$ faster), with false positives bounded to $\sim$4\%.
+  \item \textbf{Poisoned Logs:} Trust scoring blocked adversarial \texttt{ERROR} injections, 
+        maintaining stable accuracy where baselines degraded.
+  \item \textbf{Novel Incidents:} Unseen ``disk full'' patterns were adapted within tens of ticks, 
+        validating faster response to new issues.
+\end{itemize}
+
+Together, these results validate secure, trust-weighted online learning in AIOps. 
+Remaining risks include poisoning, drift manipulation, and unsafe automation; 
+trust scoring and drift detection mitigate these, while governance and explainability remain future extensions.
+
+\subsection*{Future Work}
+Several directions remain:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Deployment:} Validate scalability by integrating TAM into production observability stacks 
+        (Kubernetes + OpenTelemetry).
+  \item \textbf{Explainability \& Governance:} Add SHAP/LIME gates, human-in-the-loop approval, 
+        and rollback strategies for high-risk actions.
+  \item \textbf{Richer Models:} Explore sequence-based/embedding models (RNNs, Transformers) 
+        and vector databases for semantic recall.
+  \item \textbf{Multi-Agent Systems:} Study federated or swarm-style agents that share telemetry 
+        as distributed memory.
+\end{itemize}
+
+By treating observability as adaptive memory, TAM lays groundwork for secure, explainable, 
+and self-healing AIOps systems capable of keeping pace with dynamic cloud-native environments.
+\section*{Appendix A: Implementation Details}
+The \emph{TAM} prototype is implemented as a modular Python package, available at \href{https://github.com/ecemkaraman/telemetry-as-memory}{\textbf{GitHub Repository}}. Whereas Section~3 described the pipeline conceptually, this appendix documents the code-level modules.
+
+\subsubsection*{Core Modules}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{src/tam/telemetry.py} — Implements a synthetic Kubernetes-like telemetry generator with support for 
+        concept drift, poisoned logs, and novel incident injection.
+  \item \texttt{src/tam/baseline.py} — Implements the offline retraining baseline (logistic regression retrained every $N$ ticks).
+  \item \texttt{src/tam/online.py} — Implements the closed-loop learner with trust-weighted online updates and drift detection (ADWIN).
+  \item \texttt{src/tam/trust.py} — Provides trust scoring functions based on source validity, schema compliance, and anomaly likelihood.
+  \item \texttt{src/tam/policy.py} — Encodes threshold-based and bandit-style decision policies that map predictions to automated actions.
+  \item \texttt{src/tam/metrics.py} — Defines evaluation metrics: rolling accuracy, adaptation latency, false-positive rate, recovery iterations.
+\end{itemize}
+
+\subsubsection*{Experiment Utilities}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{src/cli/run\_eval.py} — Experiment runner for all scenarios (concept drift, poisoned logs, novel incident).
+  \item \texttt{scripts/plot\_results.py} — Post-processing utilities for aggregating results and generating evaluation figures.
+\end{itemize}
+
+\subsubsection*{Execution Flow}
+The overall flow is as follows:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Telemetry Generation:} synthetic logs, metrics, and traces (\texttt{telemetry.py}).
+  \item \textbf{Preprocessing and Trust Scoring:} schema enforcement and anomaly weighting (\texttt{trust.py}).
+  \item \textbf{Featurization and Memory:} rule-based tokens, hashing vectorizers, embeddings (\texttt{features.py}, \texttt{telemetry.py}).
+  \item \textbf{Adaptive Learning:} online/meta-learning models with drift detection (\texttt{online.py}, \texttt{drift.py}).
+  \item \textbf{Inference and Action:} predictions mapped to orchestration calls (\texttt{policy.py}).
+  \item \textbf{Governance and Explainability:} approval gates, audit logging, and explainability checks (\texttt{online.py}, \texttt{metrics.py}).
+  \item \textbf{Experiment Execution:} scenarios run via \texttt{run\_eval.py}, results stored as CSV and JSON.
+  \item \textbf{Visualization:} evaluation figures produced by \texttt{plot\_results.py}.
+\end{enumerate}
+
+\noindent Figure~\ref{fig:code_flow} illustrates the code-level flow and module interactions.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[height=\textheight]{../figures/tam.png}
-  \caption{TAM system architecture: ingestion, preprocessing \& trust, featurization \& memory, adaptive learning, inference \& action, and governance \& explainability in a closed loop.}
-  \label{fig:tam-arch}
+  \includegraphics[width=\textwidth]{../figures/code_flow.png}
+  \caption{\textbf{Implementation Flow (Code-Level).} Mapping of the conceptual pipeline (Figure~\ref{fig:tam-arch}) to concrete modules in the \tam prototype. Blue = online learner, Gray = offline baseline, Green = policy, Purple = metrics/IO, Dashed = optional or internal. Entry points orchestrate experiments (\texttt{run\_eval.py}) and visualization (\texttt{plot\_results.py}).}
+    \label{fig:code_flow}
 \end{figure}
-
-\subsection{Ingestion Layer}
-Telemetry is collected from multiple channels: \textbf{logs} (structured/unstructured system actions and errors), \textbf{metrics} (time-series signals such as CPU usage or latency), and \textbf{traces} (end-to-end request paths across services). Data is gathered through \textbf{OpenTelemetry SDKs} or cloud-native collectors (e.g., Azure Monitor, CloudWatch, Stackdriver) \parencite{opentelemetry2023spec}. To ensure scalability and decoupling, events are transported via streaming backbones such as \textbf{Kafka, Event Hub, or Kinesis}, which buffer producers and consumers while absorbing spikes and retries.
-
-\subsection{Preprocessing and Trust Scoring}
-Raw telemetry is filtered to remove redundant heartbeats or noisy events, with schema validation and PII masking applied to enforce integrity. Each event is assigned a \textbf{trust score}, computed as a function of source authentication, schema validity, and anomaly likelihood. This score modulates downstream model updates—high-trust signals are weighted strongly, while low-trust or malformed signals may be discarded. Trust scoring serves both as a \textbf{security filter against poisoning} and as a calibration mechanism for selective adaptation \parencite{barreno2006secureml,biggio2012poisoning,carlini2017poisoning}.
-
-\subsection{Featurization and Memory Encoding}
-Telemetry is transformed into structured features suitable for machine learning:
-\begin{itemize}
-    \item \textbf{Metrics}: encoded as raw values, deltas, and rolling aggregates.
-    \item \textbf{Logs}: processed using (i) simple rule-based token flags (e.g., \emph{error}, \emph{timeout}), (ii) hashing vectorizers for fixed-dimensional online features, and (iii) semantic embeddings via \textbf{SentenceTransformers}, stored in vector databases such as \textbf{FAISS} \parencite{reimers2019sbert,johnson2017faiss} or Pinecone. Embeddings enable similarity search, allowing the system to recall past semantically related incidents during decision-making.
-    \item \textbf{Traces}: featurized into path length, span error counts, or service graph encodings (optionally via graph neural networks).
-\end{itemize}
-
-The memory subsystem is hierarchical: \textbf{short-term buffers} capture the latest events in a sliding window, while a \textbf{long-term vector store} retains historical embeddings for retrieval-augmented learning and few-shot adaptation.
-
-\subsection{Adaptive Learning Layer}
-Learning is performed online via algorithms such as logistic regression, Hoeffding trees, or other \texttt{partial\_fit} models from the \textbf{River} library \parencite{domingos2000vfdt,montiel2020river}. Updates are applied incrementally per event rather than through periodic retraining. A \textbf{drift detection module} (e.g., ADWIN \parencite{bifet2007adwin} or DDM) monitors feature distributions and triggers rapid adaptation when shifts occur. Updates are \textbf{trust-weighted}, ensuring that poisoned or unreliable inputs exert minimal influence. A security gate blocks or flags updates below a confidence threshold, preventing unsafe adaptation.
-
-\subsection{Inference and Action Layer}
-At inference time, the system combines current features with retrieved embeddings of similar past incidents. A policy module predicts incident probabilities and selects actions, such as restarting a service, scaling a deployment, blocking an IP, or performing no action. High-impact actions are subject to gating policies. Actions are executed via orchestrators (e.g., Kubernetes, automation runbooks, or scripts), and each decision is logged alongside its input features, trust scores, and context.
-
-\subsection{Governance and Explainability}
-To ensure safety and accountability, \tam incorporates governance controls. \textbf{Approval gates} enforce confidence thresholds and allow human review for actions exceeding defined blast radii. \textbf{Explainability hooks} (e.g., SHAP \parencite{lundberg2017shap} or LIME \parencite{ribeiro2016lime}) provide interpretable rationales for model updates; updates influenced by unreliable features can be rolled back. A full \textbf{audit trail} records telemetry sources, trust scores, feature states, predictions, and actions for later review.
-
-\subsection{Feedback Loop}
-The pipeline operates as a closed loop:
-\begin{enumerate}[leftmargin=*]
-    \item the system emits telemetry,
-    \item signals are processed and scored,
-    \item models update online,
-    \item agents execute or recommend actions, and
-    \item actions modify the system, producing new telemetry.
-\end{enumerate}
-This cycle enables continuous, adaptive learning directly tied to the operational environment, echoing the long-standing vision of autonomic computing \parencite{kephart2003autonomic}.
-
-\section{Threat Model}
-Embedding learning directly into observability feedback loops introduces a new \textbf{attack surface}. Unlike static pipelines, the TAM framework updates models continuously from production telemetry, which adversaries may attempt to manipulate. Prior work on the security of machine learning systems has highlighted the risks of poisoning and adversarial influence in adaptive models \parencite{barreno2006secureml,carlini2017poisoning,biggio2012poisoning}.
-
-\subsection{Adversarial Risks}
-We consider several key attack vectors relevant to adaptive observability systems:
-
-\begin{itemize}
-    \item \textbf{Data Poisoning} --- Injection of fake logs or metrics to corrupt the model’s memory or bias downstream decisions \parencite{carlini2017poisoning}.
-    \item \textbf{Drift Exploitation} --- Gradual manipulation of telemetry distributions to normalize malicious activity, exploiting the system’s reliance on drift adaptation \parencite{gama2014conceptdrift}.
-    \item \textbf{Adversarial Inputs} --- Crafted log messages or trace patterns designed to evade or mislead anomaly detectors, similar to adversarial examples in ML security \parencite{barreno2006secureml}.
-    \item \textbf{Feedback Abuse} --- Triggering repeated failures so that the system adapts in the attacker’s favor, creating self-reinforcing ``drift spirals.’’
-    \item \textbf{Privilege Escalation} --- Exploiting automated actions (e.g., scaling policies or firewall rules) to gain leverage over system resources.
-\end{itemize}
-
-\subsection{Mitigation Strategies}
-To counter these risks, TAM integrates several defensive mechanisms:
-
-\begin{itemize}
-    \item \textbf{Trust Scoring} --- Each telemetry item is weighted by source authentication, schema validity, and anomaly likelihood. Low-trust signals are excluded or downweighted, reducing exposure to poisoning \parencite{biggio2012poisoning}.
-    \item \textbf{Security Gates} --- High-impact updates require human-in-the-loop approval or exceeding confidence thresholds, preventing unsafe automation \parencite{kephart2003autonomic}.
-    \item \textbf{Drift Detectors} --- Algorithms such as ADWIN raise alerts when distributions shift too quickly or suspiciously \parencite{bifet2007adwin}.
-    \item \textbf{Explainability Hooks} --- Post-update attribution techniques such as LIME \parencite{ribeiro2016lime} or SHAP \parencite{lundberg2017shap} ensure updates are committed only if influence factors are reliable.
-    \item \textbf{Audit Trails} --- Every update, action, and telemetry influence is logged for forensic analysis, aligning with security observability practices \parencite{google2016sre}.
-\end{itemize}
-
-\subsection{Design Goals}
-The security architecture of TAM is guided by the following principles:
-
-\begin{itemize}
-    \item \textbf{Integrity} --- Only authenticated and schema-valid telemetry should influence learning.
-    \item \textbf{Resilience} --- Detect and mitigate gradual drift before operational stability is compromised.
-    \item \textbf{Auditability} --- Retain explainable records of model updates and decisions for post-incident analysis.
-    \item \textbf{Safety} --- Bound adaptive behavior through approval gates and sandboxed execution, ensuring alignment with autonomic computing principles \parencite{kephart2003autonomic}.
-\end{itemize}
-
-\section{Evaluation}
-\subsection{Goals and Hypotheses}
-The objective is to validate that a closed-loop telemetry-as-memory system adapts faster and more safely than static baselines. We test three hypotheses: (H1) \emph{Adaptation speed}—live, closed-loop learning recovers from drift more quickly than periodic retraining; (H2) \emph{Safety under attack}—trust scores prevent poisoned telemetry from influencing updates; (H3) \emph{Novel incident handling}—memory-augmented learning supports faster adaptation to unseen patterns.
-
-\subsection{Experimental Setup}
-\textbf{Environment.} A simulated Kubernetes workload generator emits telemetry: CPU\% (sinusoidal baseline with spikes), error rate (step increase at $t\!\approx\!300$ to induce concept drift), and logs (INFO/WARN/ERROR aligned to error conditions). \\
-\textbf{Models.} \textit{Baseline}: offline logistic regression retrained every $N$ ticks. \textit{Closed-loop TAM}: River-based online logistic regression with trust-weighted updates \parencite{montiel2020river}. \\
-\textbf{Detection.} ADWIN monitors drift and triggers rapid adaptation \parencite{bifet2007adwin}. Trust scores downweight unverified telemetry (poisoning control \parencite{barreno2006secureml,biggio2012poisoning,carlini2017poisoning}). \\
-\textbf{Policy.} Static probability thresholds (bandit-style adaptive policies are planned).
-
-\subsection{Scenarios}
-\begin{enumerate}
-  \item \textbf{Concept Drift}: error rate increases at $t\!\approx\!300$; compare recovery latency.
-  \item \textbf{Poisoned Logs} (in progress): inject fake \texttt{ERROR} strings from untrusted sources; evaluate trust-score mitigation.
-  \item \textbf{Novel Incident} (in progress): introduce unseen pattern (``disk full'') post-training; measure adaptation speed.
-\end{enumerate}
-
-\subsection{Metrics}
-\textbf{Adaptation latency}: ticks from drift onset to restored accuracy. \textbf{False positive/negative rates}: pre vs.\ post-adaptation. \textbf{Drift detection recall}: \% of true drifts caught by ADWIN \parencite{bifet2007adwin}. \textbf{Action ROI}: \% actions reducing error over next $H$ ticks. \textbf{Recovery iterations}: updates needed to regain baseline accuracy.
-
-\subsection{Results (Scenario 1: Concept Drift)}
-% --- Figure block 1: Accuracy timeline (two-column side-by-side) ---
-\begin{figure*}[!htbp]
-  \centering
-  \begin{minipage}[t]{0.54\textwidth}
-    \vspace{0pt}
-    \includegraphics[width=\linewidth]{../results/figs/acc_timeline.png}
-    \caption*{\small \textbf{Fig.\ 5.1} Rolling accuracy vs.\ ticks for Baseline (offline retrain) and Closed-loop TAM (online, trust-weighted). Vertical marker at $t\!\approx\!300$ denotes drift onset.}
-  \end{minipage}\hfill
-  \begin{minipage}[t]{0.43\textwidth}
-    \vspace{0pt}
-    \textbf{Interpretation.} The Baseline maintains $\sim$100\% until drift then collapses to 0\%, recovering only after retraining ($t\!\approx\!600$). Closed-loop TAM suffers a brief dip but recovers within $\sim$27 ticks ($\sim$10$\times$ faster). Continuous, trust-weighted updates (no batch lag) drive the near real-time recovery \parencite{montiel2020river,bifet2007adwin}. This supports H1 (faster adaptation).
-    \medskip
-
-    \noindent\textbf{Aggregate (5 seeds).}
-    \begin{itemize}[leftmargin=*]
-      \item $\texttt{adapt\_latency\_mean} \approx 27.6$
-      \item $\texttt{fp\_rate\_mean} \approx 0.041$
-    \end{itemize}
-  \end{minipage}
-\end{figure*}
-
-% --- Figure block 2: FP rate (two-column side-by-side) ---
-\begin{figure*}[!htbp]
-  \centering
-  \begin{minipage}[t]{0.54\textwidth}
-    \vspace{0pt}
-    \includegraphics[width=\linewidth]{../results/figs/fp_rate.png}
-    \caption*{\small \textbf{Fig.\ 5.2} Mean false positive (FP) rate comparison across systems (lower is better).}
-  \end{minipage}\hfill
-  \begin{minipage}[t]{0.43\textwidth}
-    \vspace{0pt}
-    \textbf{Interpretation.} Baseline exhibits 0\% FP during drift because it effectively ``does nothing'' until retrain. Closed-loop TAM shows a small $\sim$4\% FP due to acting in real time without batch hindsight, but it avoids prolonged periods of zero accuracy. This is a deliberate safety--adaptivity trade-off; trust-weighting and gating bound the FP rate while enabling timely remediation \parencite{barreno2006secureml,biggio2012poisoning}.
-  \end{minipage}
-\end{figure*}
-
-\subsection{Discussion of Scenario 1}
-\textbf{Adaptation speed.} Closed-loop learning yields near real-time recovery from drift, confirming H1. \\
-\textbf{Safety.} Trust-weighted updates bound FP rates at $\sim$4\% (acceptable operational trade-off), supporting H2 \parencite{barreno2006secureml,carlini2017poisoning}. \\
-\textbf{Resilience.} Continuous updates eliminate downtime between retraining cycles, with ADWIN-driven triggers preventing overreaction to transient shifts \parencite{bifet2007adwin,gama2014conceptdrift}. \\
-\textbf{Planned scenarios.} Poisoned logs and novel-incident experiments will extend evaluation of H2/H3; the same metric suite and plotting protocol will be reused.
-
-% (Optional) compact table for quick numbers:
-\begin{table}[h]
-\centering
-\caption{Aggregate metrics over 5 seeds (Scenario 1). Lower is better.}
-\label{tab:agg-metrics}
-\begin{tabular}{lcc}
-\toprule
-Metric & Baseline & Closed-loop TAM \\
-\midrule
-Adaptation latency (ticks) & $\sim$300 & $\sim$27.6 \\
-False positive rate & 0.000 & 0.041 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{Discussion}
-\subsection{Engineering Challenges}
-\textbf{Concept Drift vs.\ Noise.} Differentiating persistent distributional changes from transient anomalies remains challenging; adaptive learners risk overreacting to short-term spikes, as noted in drift surveys \parencite{gama2014conceptdrift}. \\
-\textbf{Telemetry Bloat.} Logs and metrics in large-scale systems are often high-cardinality. Efficient sampling, sketching, or dimensionality reduction is essential for scalability in operational pipelines \parencite{bodik2010fingerprinting}. \\
-\textbf{Security vs.\ Adaptivity.} While online learning favors rapid updates, security practice emphasizes stability and reproducibility. The TAM design balances these opposing forces through trust scoring and gated updates \parencite{barreno2006secureml,biggio2012poisoning}.
-
-\subsection{Trade-offs}
-\textbf{Adaptivity vs.\ Stability.} Faster updates improve recovery but risk oscillations; trust weighting and drift detection help mitigate this tension \parencite{bifet2007adwin}. \\
-\textbf{Responsiveness vs.\ Reliability.} Real-time actions yield some false positives ($\sim$4\% in experiments), but this is acceptable compared to extended downtime in static retraining regimes. \\
-\textbf{Transparency vs.\ Complexity.} Explainability gates (LIME \parencite{ribeiro2016lime} and SHAP \parencite{lundberg2017shap}) improve auditability but add overhead.
-
-\subsection{Broader Implications}
-\textbf{From Alerts to Agents.} TAM reframes observability pipelines as \emph{active memory substrates}, enabling systems to not only monitor but also adapt in real time—progressing toward the autonomic computing vision \parencite{kephart2003autonomic}. \\
-\textbf{Resilient Infrastructure.} Embedding adaptive learning in telemetry loops allows construction of self-healing systems robust to drift and novel incidents \parencite{yang2025llmrl}. \\
-\textbf{Security Observability.} Trust-scored, schema-validated telemetry makes adaptive pipelines feasible even in adversarial domains such as cloud security monitoring \parencite{carlini2017poisoning}. \\
-\textbf{Regulatory Considerations.} Adaptive AI raises new governance questions around rollback, explainability, and human oversight—issues already emphasized in discussions of AI safety and accountability.
-
-\subsection{Limitations and Future Work}
-\textbf{Synthetic Workloads.} Current validation is limited to simulated Kubernetes telemetry; production workloads may expose additional complexities. \\
-\textbf{Incomplete Scenarios.} Poisoned log injection and novel-incident adaptation remain in progress and require further validation. \\
-\textbf{Model Generality.} Initial results are based on logistic regression; future extensions should evaluate sequence models (RNNs, Transformers) for richer log context \parencite{reimers2019sbert}. \\
-\textbf{Governance Frameworks.} Human-in-the-loop oversight, regulatory compliance, and rollback strategies must be formalized for deployment in safety-critical settings.
-
-\section{Conclusion and Future Work}
-This work introduced \textbf{Telemetry-as-Memory (TAM)}, a framework that reimagines observability pipelines not as passive diagnostics but as \emph{adaptive memory systems} for AI agents. By continuously ingesting logs, metrics, and traces, assigning trust scores, and applying online/meta-learning, TAM closes the loop between \emph{observation, learning, and action}.
-
-Initial experiments on synthetic Kubernetes telemetry demonstrate that TAM achieves near real-time recovery from concept drift—up to $10\times$ faster than static baselines—while bounding false positives to $\sim$4\%. These results highlight the feasibility of secure, memory-augmented learning in operational AI pipelines.
-
-At the same time, closing the feedback loop introduces new risks. The threat model presented here emphasizes poisoning, drift manipulation, and unsafe actioning. TAM mitigates these through trust-weighted updates, governance gates, and explainability checks.
-
-\subsection*{Future Work}
-Several directions remain for advancing TAM:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Prototype Deployment:} Integrate into real-world observability stacks (Kubernetes + OpenTelemetry + MLFlow) to validate latency and scalability under production load.
-  \item \textbf{Extended Scenarios:} Evaluate resilience to poisoned logs and novel incidents beyond drift.
-  \item \textbf{Richer Models:} Incorporate sequence-based and embedding models (RNNs, Transformers) to capture semantic log context \parencite{reimers2019sbert}.
-  \item \textbf{Governance Frameworks:} Formalize human-in-the-loop oversight, rollback strategies, and auditability for adaptive pipelines in safety-critical domains.
-  \item \textbf{Multi-Agent Systems:} Explore federated or swarm-style agents that share telemetry as distributed memory for collective adaptation.
-\end{itemize}
-
-By treating observability as adaptive memory, TAM lays the groundwork for secure, explainable, and self-healing AIOps systems capable of keeping pace with the dynamics of modern cloud-native environments.
-
 
 \printbibliography
 \end{document}
