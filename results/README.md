@@ -45,7 +45,7 @@ This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic
 Error rate suddenly increases at tick ~300.
 
 **Rolling Accuracy (results/drift/figs/acc_timeline.png)**  
-![Concept Drift Accuracy](results/drift/figs/acc_timeline.png)
+![Concept Drift Accuracy](drift/figs/acc_timeline.png)
 
 - **Baseline**: Accuracy collapses post-drift; only recovers after retraining (~t=600).  
 - **Closed-Loop**: Recovers within ~25–30 ticks, ~10× faster than baseline.  
