@@ -45,8 +45,6 @@ This MVP validates the **Telemetry-as-Memory (TAM)** framework using a synthetic
 Error rate suddenly increases at tick ~300.
 
 **Rolling Accuracy (results/drift/figs/acc_timeline.png)**  
-(results/drift/figs/acc_timeline.png)
-
 <p>
   <img src="drift/figs/acc_timeline.png" alt="Drift — Rolling Accuracy" width="600"><br>
 </p>
