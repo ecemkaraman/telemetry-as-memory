@@ -1,7 +1,9 @@
 .PHONY: eval run ingestion features learning inference
 
 eval:
-	python src/cli/run_eval.py
+	PYTHONPATH=src python -m cli.run_eval --config configs/base.yaml --mode baseline --out-prefix baseline && \
+	PYTHONPATH=src python -m cli.run_eval --config configs/base.yaml --mode closed   --out-prefix closed && \
+	python scripts/plot_results.py
 
 run:
 	python src/main.py

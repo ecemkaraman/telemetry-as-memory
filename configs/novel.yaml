@@ -1,0 +1,14 @@
+out_dir: results/novel
+ticks: 1000
+# Disable drift within this horizon
+drift_tick: 1000000000
+retrain_every: 300
+seeds: [1, 2, 3, 4, 5]
+
+novel:
+  t: 600
+  token: "ERROR disk full"
+
+# (Optional) Explicitly disable any poison for this run
+poison:
+  rate: 0.0

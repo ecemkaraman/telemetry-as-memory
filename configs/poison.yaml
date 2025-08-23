@@ -1,0 +1,12 @@
+# configs/poison.yaml
+ticks: 1200
+drift_tick: 300       # still inject drift for consistency
+retrain_every: 300
+out_dir: results/poison
+seeds: [42]           # fixed seed for reproducibility
+
+# Poisoning scenario parameters
+poison:
+  rate: 0.1           # 10% of events are poisoned
+  label: "ERROR forged"
+  source: "untrusted"
