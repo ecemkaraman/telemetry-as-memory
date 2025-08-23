@@ -62,7 +62,7 @@ Error rate suddenly increases at tick ~300.
 Fake `"ERROR forged"` events injected from **untrusted sources**. Trust scores downweight them.
 
 **Rolling Accuracy (results/poison/figs/acc_timeline.png)**  
-![Poison Accuracy](/poison/figs/acc_timeline.png)
+![Poison Accuracy](./poison/figs/acc_timeline.png)
 
 - **Baseline**: Maintains stability but is slower to adapt.  
 - **Closed-Loop**: Handles poisoning, slight dips in accuracy, but recovers quickly.  
