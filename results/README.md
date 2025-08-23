@@ -68,13 +68,17 @@ Error rate suddenly increases at tick ~300.
 Fake `"ERROR forged"` events injected from **untrusted sources**. Trust scores downweight them.
 
 **Rolling Accuracy (results/poison/figs/acc_timeline.png)**  
-![Poison Accuracy](./poison/figs/acc_timeline.png)
+<p>
+  <img src="poison/figs/acc_timeline.png" alt="Poison — Rolling Accuracy" width="600"><br>
+</p>
 
 - **Baseline**: Maintains stability but is slower to adapt.  
 - **Closed-Loop**: Handles poisoning, slight dips in accuracy, but recovers quickly.  
 
 **False Positive Rate (results/poison/figs/fp_rate.png)**  
-![Poison FPR](results/poison/figs/fp_rate.png)
+<p>
+  <img src="poison/figs/fp_rate.png" alt="Poison — False Positive Rate" width="600">
+</p>
 
 - Closed-Loop FP rate: ~2–3%, but resilient under attack.  
 
@@ -84,14 +88,17 @@ Fake `"ERROR forged"` events injected from **untrusted sources**. Trust scores d
 Unseen log token (`"disk full"`) introduced at tick ~600.
 
 **Rolling Accuracy (results/novel/figs/acc_timeline.png)**  
-![Novel Accuracy](results/novel/figs/acc_timeline.png)
+<p>
+  <img src="novel/figs/acc_timeline.png" alt="Novel — Rolling Accuracy" width="600"><br>
+</p>
 
 - **Baseline**: Fails to adapt until retraining.  
 - **Closed-Loop**: Drops initially, then partially adapts using online updates. Demonstrates benefit of retrieval-augmented memory, though further tuning is needed.  
 
 **False Positive Rate (results/novel/figs/fp_rate.png)**  
-![Novel FPR](results/novel/figs/fp_rate.png)
-
+<p>
+  <img src="novel/figs/fp_rate.png" alt="Novel — False Positive Rate" width="600">
+</p>
 - Closed-Loop FP rate slightly higher (~3–4%) due to aggressive adaptation.  
 
 ---
