@@ -10,8 +10,7 @@ The code maps the conceptual TAM pipeline (telemetry → trust → memory → ad
 
 ## Core Modules
 
-- `tam/telemetry.py`  
-  Implements a synthetic Kubernetes-like telemetry generator with support for **concept drift**, **poisoned logs**, and **novel incident** injection.
+- `tam/telemetry.py` : Implements a synthetic Kubernetes-like telemetry generator with support for **concept drift**, **poisoned logs**, and **novel incident** injection.
 
 - `tam/baseline.py`  
   Implements the **offline retraining baseline** (e.g., logistic regression retrained every _N_ ticks).
