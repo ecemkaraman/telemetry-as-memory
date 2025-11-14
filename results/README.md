@@ -69,10 +69,10 @@ All results are averaged over 5 seeds. Variance across runs was modest (\< 5% la
 <table>
   <tr>
     <td width="50%">
-      <img src="drift/figs/acc_timeline.png" alt="Figure 2: H1 – Accuracy under drift" />
+      <img src="drift/figs/acc_timeline.png" alt="Figure 1: H1 – Accuracy under drift" />
     </td>
     <td width="50%">
-      <img src="drift/figs/fp_rate.png" alt="Figure 3: H1 – FP rate" />
+      <img src="drift/figs/fp_rate.png" alt="Figure 2: H1 – FP rate" />
     </td>
   </tr>
 </table>
@@ -96,10 +96,10 @@ Baseline ≈ 0% (inactive). Closed-loop ≈ 4% FP, an acceptable safety–adapti
 <table>
   <tr>
     <td width="50%">
-      <img src="poison/figs/acc_timeline.png" alt="Figure 4: H2 – Accuracy under poisoning" />
+      <img src="poison/figs/acc_timeline.png" alt="Figure 3: H2 – Accuracy under poisoning" />
     </td>
     <td width="50%">
-      <img src="poison/figs/fp_rate.png" alt="Figure 5: H2 – FP rate" />
+      <img src="poison/figs/fp_rate.png" alt="Figure 4: H2 – FP rate" />
     </td>
   </tr>
 </table>
@@ -123,10 +123,10 @@ Baseline FP spikes under poisoning. Closed-loop keeps FP \< 5% via trust-scored 
 <table>
   <tr>
     <td width="50%">
-      <img src="novel/figs/acc_timeline.png" alt="Figure 6: H3 – Accuracy for unseen disk full" />
+      <img src="novel/figs/acc_timeline.png" alt="Figure 5: H3 – Accuracy for unseen disk full" />
     </td>
     <td width="50%">
-      <img src="novel/figs/fp_rate.png" alt="Figure 7: H3 – FP rate" />
+      <img src="novel/figs/fp_rate.png" alt="Figure 5: H3 – FP rate" />
     </td>
   </tr>
 </table>
