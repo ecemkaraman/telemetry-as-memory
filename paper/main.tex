@@ -14,11 +14,11 @@
 \usepackage{subcaption} 
 \usepackage[font=small,labelfont=bf]{caption} % bold "Figure X" + smaller caption font
 \usepackage{capt-of}                           % enables \captionof{figure}{...} in minipage
+\usepackage{cite} 
 \setlist{nosep}
 
-% Bibliography (biber)
-\usepackage[backend=biber,style=ieee,maxbibnames=6]{biblatex}
-\addbibresource{references.bib}
+% Bibliography
+\bibliographystyle{IEEEtran}
 
 % Helpers
 \newcommand{\tam}{\textsc{TAM}} % Telemetry-as-Memory
@@ -31,15 +31,15 @@
 \maketitle
 
 \begin{abstract}
-Observability pipelines such as \textbf{OpenTelemetry} and \textbf{Prometheus} collect logs, metrics, and traces at scale, but remain largely \textbf{passive}: they power dashboards and alerts rather than training adaptive systems \parencite{opentelemetry2023spec,google2016sre}. As a result, operational AI models are retrained offline on stale data, leaving them brittle to drift \parencite{gama2014conceptdrift} and vulnerable to poisoned telemetry \parencite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
+Observability pipelines such as \textbf{OpenTelemetry} and \textbf{Prometheus} collect logs, metrics, and traces at scale, but remain largely \textbf{passive}: they power dashboards and alerts rather than training adaptive systems \cite{opentelemetry2023spec,google2016sre}. As a result, operational AI models are retrained offline on stale data, leaving them brittle to drift \cite{gama2014conceptdrift} and vulnerable to poisoned telemetry \cite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
 
-We propose \emph{Telemetry-as-Memory (TAM)}, a closed-loop framework that treats telemetry as an \emph{adaptive memory substrate}. TAM continuously ingests telemetry, assigns trust scores, and applies \textbf{online learning} \parencite{montiel2020river,bifet2007adwin}, enabling secure, low-latency adaptation under non-stationarity. The design integrates drift detection, trust-weighted updates, and lightweight decision policies.
+This work proposes \emph{Telemetry-as-Memory (TAM)}, a closed-loop framework that treats telemetry as an \emph{adaptive memory substrate}. TAM continuously ingests telemetry, assigns trust scores, and applies \textbf{online learning} \cite{montiel2020river,bifet2007adwin}, enabling secure, low-latency adaptation under non-stationarity. The design integrates drift detection, trust-weighted updates, and lightweight decision policies.
 
 We evaluate TAM under three stressors: (1) \textbf{Concept Drift} --- recovery within $\sim$27 ticks vs.\ 300 for baselines ($\sim$10$\times$ faster) with $\sim$4\% false positives; (2) \textbf{Poisoned Logs} --- trust scoring blocks adversarial injections, preserving accuracy; and (3) \textbf{Novel Incidents} --- unseen ``disk full'' patterns adapted within tens of ticks, avoiding blind spots. Results show that treating observability as adaptive memory enables \textbf{secure, self-healing AIOps pipelines} resilient to drift, poisoning, and novel incidents.
 \end{abstract}
 
 \section{Introduction}
-Cloud-native systems emit vast telemetry streams, yet observability pipelines still treat this data primarily as diagnostic output for dashboards and alerts \parencite{opentelemetry2023spec,grafana2023adaptive}. While frameworks (e.g., OpenTelemetry, Prometheus) standardize collection and monitoring, they do not leverage telemetry as direct input for adaptive learning. At the same time, operational ML remains largely offline, with models retrained only on historical data—leaving systems brittle under drift \parencite{gama2014conceptdrift}, slow to detect novel incidents, and vulnerable to telemetry poisoning \parencite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
+Cloud-native systems emit vast telemetry streams, yet observability pipelines still treat this data primarily as diagnostic output for dashboards and alerts \cite{opentelemetry2023spec,grafana2023adaptive}. While frameworks (e.g., OpenTelemetry, Prometheus) standardize collection and monitoring, they do not leverage telemetry as direct input for adaptive learning. At the same time, operational ML remains largely offline, with models retrained only on historical data—leaving systems brittle under drift \cite{gama2014conceptdrift}, slow to detect novel incidents, and vulnerable to telemetry poisoning \cite{carlini2017poisoning,barreno2006secureml,biggio2012poisoning}.
 \emph{Telemetry-as-Memory (TAM)} closes this gap by reframing observability data as adaptive memory. Instead of powering only visualizations, TAM enables models to update incrementally and adapt continuously.
 
 \paragraph*{Contributions}
@@ -54,12 +54,12 @@ This shifts observability from ``monitor and alert'' toward \textbf{observe, lea
 \section{Background and Related Work}
 
 \subsection{Observability Pipelines}
-Modern observability frameworks (e.g., OpenTelemetry, Prometheus) standardize collection of logs, metrics, and traces at scale \parencite{opentelemetry2023spec}. They excel at monitoring and visualization but keep telemetry largely \emph{passive}. Extensions such as \textbf{Grafana Adaptive Metrics} reduce storage and cost overheads \parencite{grafana2023adaptive}, yet none treat telemetry as a substrate for adaptive learning. This reflects long-standing critiques in reliability engineering, where observability has been viewed as operator-facing signals rather than inputs to self-adaptive systems \parencite{google2016sre,bodik2010fingerprinting}.
+Modern observability frameworks (e.g., OpenTelemetry, Prometheus) standardize collection of logs, metrics, and traces at scale \cite{opentelemetry2023spec}. They excel at monitoring and visualization but keep telemetry largely \emph{passive}. Extensions such as \textbf{Grafana Adaptive Metrics} reduce storage and cost overheads \cite{grafana2023adaptive}, yet none treat telemetry as a substrate for adaptive learning. This reflects long-standing critiques in reliability engineering, where observability has been viewed as operator-facing signals rather than inputs to self-adaptive systems \cite{google2016sre,bodik2010fingerprinting}.
 \subsection{Online and Meta-Learning}
-\textbf{Online learning} updates incrementally with each new data point, supporting non-stationary environments \parencite{domingos2000vfdt,bifet2007adwin,montiel2020river,gama2014conceptdrift}. \textbf{Meta-learning} extends this by optimizing for fast adaptation itself \parencite{finn2019online}. Operational explorations include \textbf{MAML-KAD} for anomaly detection \parencite{duan2024mamlkad}, \textbf{SAM} for anomaly transfer across clouds \parencite{jha2024sam}, and \textbf{OMLog} for log streams \parencite{tian2024omlog}. Despite promise, integration into production-grade observability pipelines remains rare.
+\textbf{Online learning} updates incrementally with each new data point, supporting non-stationary environments \cite{domingos2000vfdt,bifet2007adwin,montiel2020river,gama2014conceptdrift}. \textbf{Meta-learning} extends this by optimizing for fast adaptation itself \cite{finn2019online}. Operational explorations include \textbf{MAML-KAD} for anomaly detection \cite{duan2024mamlkad}, \textbf{SAM} for anomaly transfer across clouds \cite{jha2024sam}, and \textbf{OMLog} for log streams \cite{tian2024omlog}. Despite promise, integration into production-grade observability pipelines remains rare.
 
 \subsection{Self-Healing and AIOps Systems}
-AIOps spans log anomaly detection (DeepLog, LogAnomaly) to RL-based remediation. Recent work combines \textbf{LLMs and RL} for fault remediation \parencite{yang2025llmrl}, but most systems rely on static anomaly detectors or rules, limiting adaptivity under drift. The long-standing autonomic computing vision \parencite{kephart2003autonomic} calls for closed-loop, self-managing systems, but practical adoption remains fragmented.
+AIOps spans log anomaly detection (DeepLog, LogAnomaly) to RL-based remediation. Recent work combines \textbf{LLMs and RL} for fault remediation \cite{yang2025llmrl}, but most systems rely on static anomaly detectors or rules, limiting adaptivity under drift. The long-standing autonomic computing vision \cite{kephart2003autonomic} calls for closed-loop, self-managing systems, but practical adoption remains fragmented.
 
 \subsection{Gap Analysis}
 Prior work solves isolated parts:
@@ -224,7 +224,7 @@ For each scenario, we show: (i) accuracy recovery and (ii) FP trade-offs.
 \begin{itemize}[leftmargin=*]
   \item \textbf{Adaptivity vs.\ Stability.} Faster recovery risks oscillation; mitigated via weighted updates and drift detection.  
   \item \textbf{Responsiveness vs.\ Reliability.} Real-time actioning yields $\sim$4\% FP in drift/novel scenarios but avoids 300+ ticks of downtime.  
-  \item \textbf{Transparency vs.\ Overhead.} Explainability gates (LIME, SHAP) improve auditability but add $\sim$15–20\% runtime overhead \parencite{lundberg2017shap,ribeiro2016lime}.  
+  \item \textbf{Transparency vs.\ Overhead.} Explainability gates (LIME, SHAP) improve auditability but add $\sim$15–20\% runtime overhead \cite{lundberg2017shap,ribeiro2016lime}.  
 \end{itemize}
 
 \subsection{Broader Implications}
@@ -316,10 +316,10 @@ The overall flow is as follows:
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{../figures/code_flow.png}
+  \includegraphics[width=\textwidth]{figures/code_flow.png}
   \caption{\textbf{Implementation Flow (Code-Level).} Mapping of the conceptual pipeline (Figure~\ref{fig:tam-arch}) to concrete modules in the \tam prototype. Blue = online learner, Gray = offline baseline, Green = policy, Purple = metrics/IO, Dashed = optional or internal. Entry points orchestrate experiments (\texttt{run\_eval.py}) and visualization (\texttt{plot\_results.py}).}
     \label{fig:code_flow}
 \end{figure}
 
-\printbibliography
+\bibliography{references}
 \end{document}
