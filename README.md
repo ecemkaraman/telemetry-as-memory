@@ -12,7 +12,7 @@ Observability pipelines such as OpenTelemetry and Prometheus collect logs, metri
 
 This repository hosts the **TAM prototype**, including:
 
-- **Full Researcg Paper** – `main.pdf` (Telemetry-as-Memory manuscript). [`main.pdf`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/paper/main.pdf)
+- **Full Research Paper** – [`main.pdf`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/paper/main.pdf)
 - **Core engine** – [`src/`](https://github.com/ecemkaraman/telemetry-as-memory/tree/main/src) (online learner, trust, policy, metrics).  See [`src/README.md`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/README.md) for a code-level walkthrough.
 - **Experiments & results** – evaluation scenarios, CSV/JSON outputs, and plots.  
   See [`results.md`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/README.md) for detailed metrics and hypotheses.
@@ -79,7 +79,7 @@ Together, these layers transform observability from a passive diagnostic tool in
 
 ---
 
-## 4. Threat Model (Security Lens)
+## 4. Threat Model 
 
 We assume adversaries can inject or manipulate telemetry but **do not** have full system control.
 
@@ -119,21 +119,3 @@ The prototype evaluates TAM under three stressors:
    - TAM adapts within **tens of ticks**, avoiding blind spots until the next offline retrain.
 
 Details, tables, and reproduction commands are in `results.md`.
-
----
-
-## 6. Repository Structure
-
-High-level layout:
-
-```text
-.
-├── main.pdf          # Telemetry-as-Memory paper
-├── results.md        # Experimental results and hypotheses
-├── src/
-│   ├── tam/          # Core engine (telemetry, trust, online, policy, metrics, baseline)
-│   ├── cli/          # Experiment runner (run_eval.py)
-│   └── README.md     # Code-level execution flow (Figure 8 mapping)
-├── scripts/
-│   └── plot_results.py   # Result aggregation and plotting
-└── requirements.txt
