@@ -111,3 +111,53 @@ The prototype evaluates TAM under three stressors:
    - TAM adapts within **tens of ticks**, avoiding blind spots until the next offline retrain.
 
 Details, tables, and reproduction commands are in `results.md`.
+---
+
+## 6. Engineering Challenges & Trade-offs
+
+### 6.1 Engineering Challenges
+
+- **Drift vs. Noise:** Distinguishing persistent drift from transient spikes is non-trivial; naive adaptive learners overreact. TAM mitigates this with **drift detection** and trust-weighted updates.
+
+- **Telemetry Bloat:** High-cardinality metrics/logs require efficient sampling & sketching to avoid \(O(n)\) blowups in memory and compute.
+
+- **Security vs. Adaptivity:** Online learning favors fast updates; security demands stability and reproducibility. TAM uses **trust scoring + drift detection** to balance these.
+
+### 6.2 Trade-offs
+
+- **Adaptivity vs. Stability:** Faster recovery risks oscillation; mitigated via weighted updates and conservative drift gates.
+
+- **Responsiveness vs. Reliability:** Real-time actioning yields ~4% FP in drift/novel scenarios but avoids 300+ ticks of downtime.
+
+- **Transparency vs. Overhead:** Explainability gates (LIME/SHAP) improve auditability but add ~15–20% runtime overhead in typical deployments.
+
+---
+
+## 7. Limitations
+
+Current prototype limitations (intentionally kept explicit):
+
+- **Synthetic workloads:** Evaluation uses simulated Kubernetes telemetry; real workloads will introduce more noise and heterogeneity.
+
+- **Model scope:** Experiments focus on logistic regression–style streaming learners; sequence / embedding models (RNNs, Transformers) are not yet evaluated.
+
+- **Governance implementation:** Human-in-the-loop approval, rollback flows, and full SHAP/LIME pipelines are defined conceptually, partially stubbed in code, but not yet production-ready.
+
+- **Metric scope:** Secondary metrics (drift recall, action ROI, cost/latency of explainability layers) are defined but not fully reported in this prototype.
+
+---
+
+## 8. Future Work
+
+Several directions remain:
+
+- **Deployment:** Validate scalability by integrating TAM into real observability stacks (Kubernetes + OpenTelemetry, Kafka/EventHub-based pipelines).
+
+- **Explainability & Governance:** Add SHAP/LIME gates, robust human-in-the-loop approval, and rollback strategies for high-risk actions.
+
+- **Richer Models:** Explore sequence-based / embedding models (RNNs, Transformers) and production vector databases for long-term semantic memory.
+
+- **Multi-Agent Systems:** Study federated or swarm-style agents that share telemetry as a **distributed memory** across services and clusters.
+
+By treating observability as adaptive memory, TAM lays groundwork for secure, explainable, and self-healing AIOps systems capable of keeping pace with dynamic cloud-native environments.
+
