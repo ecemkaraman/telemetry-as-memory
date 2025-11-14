@@ -39,24 +39,17 @@ TAM is a modular, closed-loop pipeline that converts raw observability streams i
 
 ### 3.1 Pipeline Layers
 
-1. **Ingestion**  
-   Logs capture system events; metrics record CPU/error rates; traces encode request paths.  
-   Telemetry arrives via OpenTelemetry / cloud-native collectors.
+1. **Ingestion:**  Logs capture system events; metrics record CPU/error rates; traces encode request paths. Telemetry arrives via OpenTelemetry / cloud-native collectors.
 
-2. **Preprocessing & Trust Scoring**  
+2. **Preprocessing & Trust Scoring:**  
    - Deduplication, schema validation, PII masking.  
-   - Each event receives a **trust score** based on:
-     - source validity
-     - schema compliance
-     - anomaly likelihood  
+   - Each event receives a **trust score** based on source validity,schema compliance and anomaly likelihood.  
    - High-trust signals weigh strongly; low-trust signals are downweighted or dropped.
 
 3. **Featurization & Memory**  
    - Rolling aggregates/deltas for metrics.  
    - Token flags, hashing vectorizers, or semantic embeddings for logs.  
-   - Optional hierarchical memory combining:
-     - short-term sliding windows and  
-     - long-term vector stores (e.g., FAISS/Pinecone) for recall.
+   - Optional hierarchical memory combining short-term sliding windows and long-term vector stores (e.g., FAISS/Pinecone) for recall.
 
 4. **Adaptive Learning**  
    - Streaming models (e.g., logistic regression / Hoeffding trees in River).  
@@ -64,8 +57,7 @@ TAM is a modular, closed-loop pipeline that converts raw observability streams i
    - **Trust-weighted updates** limit the influence of poisoned inputs.
 
 5. **Inference & Action**  
-   - Combine current features + recalled incidents to predict outcomes and choose actions:
-     - restart service, scale deployment, block IP, create ticket, etc.  
+   - Combine current features + recalled incidents to predict outcomes and choose actions: restart service, scale deployment, block IP, create ticket, etc.  
    - High-impact actions pass through **gates** or human review.
 
 6. **Governance & Explainability**  
