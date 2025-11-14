@@ -1,3 +1,3 @@
 
 
-<img width="641" height="789" alt="image" src="[../blob/main/figures/code_flow.png]" />
+![Code Flow](https://raw.githubusercontent.com/ecemkaraman/telemetry-as-memory/main/figures/code_flow.png)
