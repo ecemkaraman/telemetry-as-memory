@@ -41,27 +41,23 @@ TAM is a modular, closed-loop pipeline that converts raw observability streams i
 
 1. **Ingestion:**  Logs capture system events; metrics record CPU/error rates; traces encode request paths. Telemetry arrives via OpenTelemetry / cloud-native collectors.
 
-2. **Preprocessing & Trust Scoring:**  
-   - Deduplication, schema validation, PII masking.  
+2. **Preprocessing & Trust Scoring:** Deduplication, schema validation, PII masking.  
    - Each event receives a **trust score** based on source validity,schema compliance and anomaly likelihood.  
    - High-trust signals weigh strongly; low-trust signals are downweighted or dropped.
 
-3. **Featurization & Memory**  
-   - Rolling aggregates/deltas for metrics.  
+3. **Featurization & Memory:** Rolling aggregates/deltas for metrics.  
    - Token flags, hashing vectorizers, or semantic embeddings for logs.  
    - Optional hierarchical memory combining short-term sliding windows and long-term vector stores (e.g., FAISS/Pinecone) for recall.
 
-4. **Adaptive Learning**  
+4. **Adaptive Learning:**  
    - Streaming models (e.g., logistic regression / Hoeffding trees in River).  
    - Drift detectors (e.g., ADWIN) flag distribution shifts and trigger reweighting or resets.  
    - **Trust-weighted updates** limit the influence of poisoned inputs.
 
-5. **Inference & Action**  
-   - Combine current features + recalled incidents to predict outcomes and choose actions: restart service, scale deployment, block IP, create ticket, etc.  
+5. **Inference & Action:** Combine current features + recalled incidents to predict outcomes and choose actions: restart service, scale deployment, block IP, create ticket, etc.  
    - High-impact actions pass through **gates** or human review.
 
-6. **Governance & Explainability**  
-   - Approval gates and audit trails.  
+6. **Governance & Explainability:** Approval gates and audit trails
    - Hooks for SHAP/LIME-style interpretability.  
    - Rollback-friendly design: unsafe updates can be reverted while maintaining throughput.
 
@@ -109,7 +105,6 @@ The prototype evaluates TAM under three stressors:
 3. **Novel Incidents**  
    - Previously unseen `"disk full"` patterns.  
    - TAM adapts within **tens of ticks**, avoiding blind spots until the next offline retrain.
-
 Details, tables, and reproduction commands are in `results.md`.
 ---
 
