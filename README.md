@@ -105,7 +105,8 @@ The prototype evaluates TAM under three stressors:
 3. **Novel Incidents**  
    - Previously unseen `"disk full"` patterns.  
    - TAM adapts within **tens of ticks**, avoiding blind spots until the next offline retrain.
-Details, tables, and reproduction commands are in `results.md`.
+
+- Details, tables, and reproduction commands are in `results.md`.
 ---
 
 ## 6. Engineering Challenges & Trade-offs
