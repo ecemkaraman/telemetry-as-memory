@@ -44,37 +44,21 @@ The code maps the conceptual TAM pipeline (telemetry → trust → memory → ad
 
 The overall flow implemented in this folder is:
 
-1. **Telemetry Generation**  
-   Synthetic logs, metrics, and traces.  
-   → `tam/telemetry.py`
+1. **Telemetry Generation:** Synthetic logs, metrics, and traces → `tam/telemetry.py`
 
-2. **Preprocessing and Trust Scoring**  
-   Schema enforcement, source validation, and anomaly weighting.  
-   → `tam/trust.py` (+ helpers in `tam/telemetry.py`)
+2. **Preprocessing and Trust Scoring:** Schema enforcement, source validation, and anomaly weighting → `tam/trust.py` (+ helpers in `tam/telemetry.py`)
 
-3. **Featurization and Memory**  
-   Rule-based tokens, hashing vectorizers, optional embeddings and memory-like representations.  
-   → `tam/features.py`, `tam/telemetry.py`
+3. **Featurization and Memory:** Rule-based tokens, hashing vectorizers, optional embeddings and memory-like representations → `tam/features.py`, `tam/telemetry.py`
 
-4. **Adaptive Learning**  
-   Online / meta-learning models with drift detection and trust-weighted updates.  
-   → `tam/online.py`, `tam/drift.py`
+4. **Adaptive Learning:** Online / meta-learning models with drift detection and trust-weighted updates → `tam/online.py`, `tam/drift.py`
 
-5. **Inference and Action**  
-   Predictions mapped to orchestration / automation calls via policy rules.  
-   → `tam/policy.py`
+5. **Inference and Action:** Predictions mapped to orchestration / automation calls via policy rules → `tam/policy.py`
 
-6. **Governance and Explainability**  
-   Approval gates, audit logging, and explainability checks; metric collection for analysis.  
-   → `tam/online.py`, `tam/metrics.py`
+6. **Governance and Explainability:** Approval gates, audit logging, and explainability checks; metric collection for analysis → `tam/online.py`, `tam/metrics.py`
 
-7. **Experiment Execution**  
-   Scenarios run via the experiment runner; results stored as CSV and JSON.  
-   → `cli/run_eval.py`
+7. **Experiment Execution:** Scenarios run via the experiment runner; results stored as CSV and JSON → `cli/run_eval.py`
 
-8. **Visualization**  
-   Evaluation figures produced from the stored results.  
-   → `../scripts/plot_results.py`
+8. **Visualization:** Evaluation figures produced from the stored results → `../scripts/plot_results.py`
 
 ---
 
