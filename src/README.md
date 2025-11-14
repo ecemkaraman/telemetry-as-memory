@@ -12,20 +12,16 @@ The code maps the conceptual TAM pipeline (telemetry → trust → memory → ad
 
 - `tam/telemetry.py` : Implements a synthetic Kubernetes-like telemetry generator with support for **concept drift**, **poisoned logs**, and **novel incident** injection.
 
-- `tam/baseline.py`  
+- `tam/baseline.py` :  
   Implements the **offline retraining baseline** (e.g., logistic regression retrained every _N_ ticks).
 
-- `tam/online.py`  
-  Implements the **closed-loop learner** with trust-weighted online updates and **drift detection** (e.g., ADWIN integration).
+- `tam/online.py` : Implements the **closed-loop learner** with trust-weighted online updates and **drift detection** (e.g., ADWIN integration).
 
-- `tam/trust.py`  
-  Provides **trust scoring** functions based on source validity, schema compliance, and anomaly likelihood.
+- `tam/trust.py` : Provides **trust scoring** functions based on source validity, schema compliance, and anomaly likelihood.
 
-- `tam/policy.py`  
-  Encodes threshold-based and bandit-style **decision policies** that map model predictions to automated actions.
+- `tam/policy.py` : Encodes threshold-based and bandit-style **decision policies** that map model predictions to automated actions.
 
-- `tam/metrics.py`  
-  Defines evaluation metrics: rolling accuracy, adaptation latency, false-positive rate, and recovery iterations.
+- `tam/metrics.py` : Defines evaluation metrics: rolling accuracy, adaptation latency, false-positive rate, and recovery iterations.
 
 ---
 
