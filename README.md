@@ -6,7 +6,8 @@ Modern observability pipelines collect logs, metrics, and traces at scale, but t
 
 The goal is to lay the groundwork for **autonomous, secure, and explainable AIOps pipelines**—pipelines that adapt faster than static models, resist poisoning, and leverage past incidents to guide future decisions.
 
-> **Note:** This repository presents the implementation highlights. The full research paper is currently in the pre-publication stage and will be submitted to **arXiv (August 2025)**.
+> **Note:** This repository presents the implementation highlights. The full research paper is currently in the pre-publication stage.
+> To access the full paper: [https://github.com/ecemkaraman/telemetry-as-memory/blob/main/paper/main.pdf]
 > 
 
 ---
