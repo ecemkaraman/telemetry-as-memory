@@ -1,114 +1,139 @@
 # Telemetry-as-Memory (TAM)
 
-Modern observability pipelines collect logs, metrics, and traces at scale, but they remain largely **passive**: they monitor and alert, yet fail to adapt or learn in real time. ML in operations is often retrained offline, making it too slow to react to sudden changes and vulnerable to poisoned or noisy telemetry.
+> **Telemetry-as-Memory (TAM): Using Observability Pipelines to Train Adaptive AI Systems**
 
-**Telemetry-as-Memory (TAM)** explores a different approach: treating observability data streams as live **adaptive memory** that continuously informs learning and action. The system is designed as a **closed loop**, where telemetry updates models online, trust scores filter unreliable inputs, and explainability gates ensure safe updates.
+Observability pipelines such as OpenTelemetry and Prometheus collect logs, metrics, and traces at scale, but are largely **passive**: they power dashboards and alerts rather than training adaptive systems. Operational models are typically retrained offline on stale data, making them brittle to **drift** and vulnerable to **poisoned telemetry**.
 
-The goal is to lay the groundwork for **autonomous, secure, and explainable AIOps pipelines**—pipelines that adapt faster than static models, resist poisoning, and leverage past incidents to guide future decisions.
-
-> **Note:** This repository presents the implementation highlights. The full research paper is currently in the pre-publication stage.
-> [Access the full paper here](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/paper/main.pdf)
-> 
+**TAM** turns observability into an **adaptive memory substrate**. Telemetry is continuously ingested, assigned trust scores, encoded as features/memory, and fed to online/meta-learning models that drive secure, self-healing AIOps pipelines.
 
 ---
 
-## Key Contributions
+## 1. What This Repo Contains
 
-- **Telemetry as Adaptive Memory** → Logs + metrics + traces = live AI memory (continuous training input).
-- **Trust-Gated Closed Loop** → Real-time updates weighted by trust scores to block poisoned telemetry.
-- **Online Meta-Learning** → Rapid drift adaptation without requiring full retraining.
-- **Explainability Gate** → Model updates are committed only when explainability (XAI) checks are reliable.
-- **Observability + LLM + RL** → Hybrid agent design enabling autonomous and safeguarded remediation.
+This repository hosts the **TAM prototype**, including:
 
-## Core Components
-
-**1. Ingestion Layer**
-
-- Collect logs, metrics, and traces via OpenTelemetry / cloud-native agents.
-- Transported through Kafka/Event Hub/Kinesis to decouple producers & consumers.
-
-**2. Preprocessing & Trust Scoring**
-
-- Drop noise, mask PII, enforce schema.
-- Assign **trust scores** (auth + schema + anomaly likelihood) to block poisoned data.
-
-**3. Featurization & Memory Encoding**
-
-- Metrics → raw, deltas, rolling aggregates.
-- Logs → token flags, hashing vectorizer; optional embeddings (SentenceTransformers + FAISS/Pinecone).
-- Memory = **short-term buffer** + **long-term vector DB** for semantic recall.
-
-**4. Adaptive Learning Layer**
-
-- Online learners (River logistic regression, Hoeffding trees).
-- Drift detection (ADWIN, DDM) triggers fast updates.
-- Trust-weighted updates; meta-learning adapts features/learning rate.
-
-**5. Inference & Action Layer**
-
-- Predict incident probability; policy maps to actions (restart, scale, block, no-op).
-- Executes via Kubernetes/runbooks; logs all actions for traceability.
-
-**6. Governance & Explainability**
-
-- Approval gates for high-impact changes.
-- SHAP/LIME explainability checks before committing updates.
-- Full audit trail of telemetry, trust, predictions, and actions.
-
-**7. Feedback Loop**
-
-- Actions change system → generates new telemetry → feeds back into ingestion.
-- Creates a **closed loop** for continuous learning + adaptation.
+- **Full Researcg Paper** – `main.pdf` (Telemetry-as-Memory manuscript). [`main.pdf`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/paper/main.pdf)
+- **Core engine** – [`src/`](https://github.com/ecemkaraman/telemetry-as-memory/tree/main/src) (online learner, trust, policy, metrics).  See [`src/README.md`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/README.md) for a code-level walkthrough.
+- **Experiments & results** – evaluation scenarios, CSV/JSON outputs, and plots.  
+  See [`results.md`](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/results/README.md) for detailed metrics and hypotheses.
 
 ---
 
-## System Flow
+## 2. Problem & Gap
+
+Modern systems have three disconnected islands:
+1. **Observability** – OpenTelemetry / Prometheus-style pipelines **collect and visualize** telemetry but stop short of learning.
+2. **Online / Meta-learning** – Streaming and meta-learning methods enable rapid adaptation, but are rarely embedded in production telemetry.
+3. **AIOps / Automation** – Prototypes automate response, but often lack **trust, explainability, and adversarial robustness**.
+
+TAM bridges this gap by:
+- Making **online learning** a first-class citizen of observability pipelines.
+- Adding **trust-scored, security-gated updates** to defend against poisoned or low-quality telemetry.
+- Providing hooks for **governance and explainability** on top of adaptive policies.
+
+---
+
+## 3. TAM Overview
+
+TAM is a modular, closed-loop pipeline that converts raw observability streams into adaptive signals for **online learning** and **secure decision-making**.
+
+### 3.1 Pipeline Layers
+
+1. **Ingestion**  
+   Logs capture system events; metrics record CPU/error rates; traces encode request paths.  
+   Telemetry arrives via OpenTelemetry / cloud-native collectors.
+
+2. **Preprocessing & Trust Scoring**  
+   - Deduplication, schema validation, PII masking.  
+   - Each event receives a **trust score** based on:
+     - source validity
+     - schema compliance
+     - anomaly likelihood  
+   - High-trust signals weigh strongly; low-trust signals are downweighted or dropped.
+
+3. **Featurization & Memory**  
+   - Rolling aggregates/deltas for metrics.  
+   - Token flags, hashing vectorizers, or semantic embeddings for logs.  
+   - Optional hierarchical memory combining:
+     - short-term sliding windows and  
+     - long-term vector stores (e.g., FAISS/Pinecone) for recall.
+
+4. **Adaptive Learning**  
+   - Streaming models (e.g., logistic regression / Hoeffding trees in River).  
+   - Drift detectors (e.g., ADWIN) flag distribution shifts and trigger reweighting or resets.  
+   - **Trust-weighted updates** limit the influence of poisoned inputs.
+
+5. **Inference & Action**  
+   - Combine current features + recalled incidents to predict outcomes and choose actions:
+     - restart service, scale deployment, block IP, create ticket, etc.  
+   - High-impact actions pass through **gates** or human review.
+
+6. **Governance & Explainability**  
+   - Approval gates and audit trails.  
+   - Hooks for SHAP/LIME-style interpretability.  
+   - Rollback-friendly design: unsafe updates can be reverted while maintaining throughput.
+
+Together, these layers transform observability from a passive diagnostic tool into an **adaptive memory substrate**, continuously closing the loop between observation, learning, and action.
 
 <img width="600" height="1200" alt="image" src="https://github.com/ecemkaraman/telemetry-as-memory/blob/main/figures/tam.png" />
 
+---
+
+## 4. Threat Model (Security Lens)
+
+We assume adversaries can inject or manipulate telemetry but **do not** have full system control.
+
+### 4.1 Key Risks
+
+- **Poisoning** – Fake logs/metrics corrupt model memory or bias updates.  
+- **Drift Exploitation** – Gradual distribution shifts normalize malicious activity.  
+- **Adversarial Inputs** – Crafted logs/traces mislead anomaly detectors.  
+- **Feedback Abuse** – Induced failures cause harmful adaptive loops (“drift spirals”).  
+- **Privilege Escalation** – Abusing automated actions (scaling, firewall rules) for leverage.
+
+### 4.2 Mitigations
+
+TAM’s design addresses these via:
+
+- **Trust scoring** (source, schema, anomaly-likelihood).  
+- **Drift detection** and adaptive reweighting / resets.  
+- **Security gates** for high-impact actions.  
+- **Audit trails** tying decisions back to telemetry and trust scores.
 
 ---
 
-## State and Prior Work
+## 5. Experiments & Results (Summary)
 
-- **Prior work** has addressed fragments: few-shot anomaly adaptation, drift-triggered retraining, cost optimization, or self-healing policies.
-- **Limitations:** none unify multi-channel telemetry (logs + metrics + traces) as adaptive memory, nor integrate security-first trust scoring with closed-loop online/meta-learning.
-- **This work:** introduces a trust-gated, memory-augmented learning system that combines short-term adaptation with long-term semantic recall, enabling secure, explainable, closed-loop AIOps.
+The prototype evaluates TAM under three stressors:
 
-## Features
+1. **Concept Drift**  
+   - Error dynamics change mid-run (step increase).  
+   - TAM recovers within **~27 ticks vs ~300** for the offline baseline (~10× faster) with ~4% FP.
 
-- **Synthetic Telemetry Generator** → Kubernetes-like stream of CPU, error rates, and logs with injected drift.
-    
-    [src/tam/telemetry.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/telemetry.py)
-    
-- **Baseline vs Closed-Loop Learners** → Compare static offline retraining with trust-gated online updates.
-    
-    [src/tam/baseline.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/baseline.py)
-    
-    [src/tam/online.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/online.py)
-    
-    Runner: [src/cli/run_eval.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/cli/run_eval.py)
-    
-- **Drift Detection** → ADWIN to trigger rapid adaptation under changing conditions.
-    
-    Detector: *planned* [src/tam/drift.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/drift.py) (in progress)
-    
-    Integrated into [src/tam/online.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/online.py)
-    
-- **Memory Integration** → Short-term sliding buffer + long-term semantic recall for logs.
-    
-    Short-term: [src/tam/memory.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/memory.py)
-    
-    Embeddings/vector DB hooks: [src/tam/features.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/features.py)
-    
-- **Security Gate** → Trust scores to block poisoned/unverified telemetry from influencing updates.
-    
-    [src/tam/trust.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/trust.py) (scoring logic)
-    
-    Applied in [src/tam/online.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/online.py)
-    
-- **Action Layer** → Threshold and bandit-style policies that map predictions to automated system actions.
-    
-    [src/tam/policy.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/tam/policy.py)
-    
-    Invoked via [src/cli/run_eval.py](https://github.com/ecemkaraman/telemetry-as-memory/blob/main/src/cli/run_eval.py)
+2. **Poisoned Logs**  
+   - Adversarial `ERROR` logs injected from low-trust sources.  
+   - Trust scoring keeps **false positives < ~5%**, preserving accuracy, while the offline baseline overreacts.
+
+3. **Novel Incidents**  
+   - Previously unseen `"disk full"` patterns.  
+   - TAM adapts within **tens of ticks**, avoiding blind spots until the next offline retrain.
+
+Details, tables, and reproduction commands are in `results.md`.
+
+---
+
+## 6. Repository Structure
+
+High-level layout:
+
+```text
+.
+├── main.pdf          # Telemetry-as-Memory paper
+├── results.md        # Experimental results and hypotheses
+├── src/
+│   ├── tam/          # Core engine (telemetry, trust, online, policy, metrics, baseline)
+│   ├── cli/          # Experiment runner (run_eval.py)
+│   └── README.md     # Code-level execution flow (Figure 8 mapping)
+├── scripts/
+│   └── plot_results.py   # Result aggregation and plotting
+└── requirements.txt
